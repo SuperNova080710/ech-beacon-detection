@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.crt
+*.p12
+*.pfx
+
+# Packet capture
+*.pcap
+*.pcapng
+
+# Temporary experiment output
+tmp/
+.cache/
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+
+# Generated archives
+*.zip
