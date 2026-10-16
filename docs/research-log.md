@@ -117,3 +117,43 @@ Threshold 또는 모델 파라미터가 필요하면 calibration/train partition
 실험 코드를 작성하기 전에 연구 질문, 선행연구, 연구 공백, 비교 방식, 반증 조건까지 문서로 고정했다.
 
 다음 단계는 native ECH testbed의 재현 가능성을 확인하고, 실험 환경을 repository 내부에서 고정하는 것이다.
+
+---
+
+## 2026-10-16 — 관련 논문 30편 확장 문헌검토
+
+### 목적
+
+본격적인 실험 전에 ECH/TLS 1.3, encrypted malware/C2, beaconing, encrypted traffic classification, timing·packet size·direction 기반 분석에 관한 실존 논문을 최소 30편 검토하여 추후 인용과 Related Work 작성의 근거를 확보한다.
+
+### 수행 내용
+
+- ECH/TLS 1.3 visibility 관련 연구와 survey
+- encrypted malware/C2 및 beacon detection 연구
+- timing, packet size, directionality 기반 encrypted traffic classification 연구
+- lightweight/online classifier 연구
+- QUIC 및 현대 암호화 프로토콜에서 side-channel metadata를 이용한 연구
+
+총 30편의 저자, 연도, 출처, DOI 또는 공식 publication page, 핵심 방법, 주요 결과, 본 연구와의 관련성 및 직접 중복 여부를 검토했다.
+
+### 문서
+
+- 상세 문헌검토: `docs/literature-review-30.md`
+- 빠른 인용 목록: `references/citation-library.md`
+
+### 30편 검토 후 결론
+
+문헌 범위를 확대해도 현재 Research Gap은 유지 가능하다고 판단했다. 다만 신규성은 새로운 feature 발명이 아니라 다음 제한된 실험적 기여로 정의한다.
+
+> Native ECH 환경에서 high-jitter beacon을 대상으로 timing-only 방식과 timing·packet size·directionality·burst를 결합한 경량 다중특징 방식을 동일 조건에서 비교하고, jitter 수준별 탐지 성능 저하와 처리 비용을 함께 평가한다.
+
+특히 다음은 기존 연구에 존재하므로 신규 기여로 주장하지 않는다.
+
+- packet size, timing, directionality feature 자체
+- ECH가 SNI/ClientHello visibility를 낮춘다는 사실
+- encrypted beacon의 timing 기반 탐지
+- encrypted C2 traffic classification 자체
+
+### 실험 전 유지 결정
+
+30편 문헌검토가 끝날 때까지 실제 결과 데이터는 생성하지 않았다. 문헌검토 결과를 반영한 뒤 사전 정의된 실험 설계에 따라 testbed 구축을 시작한다.
