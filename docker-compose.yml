@@ -82,6 +82,7 @@ services:
       - ./generator:/workspace/generator:ro
       - ./data:/data
       - ./artifacts/evidence:/evidence
+      - ./artifacts/pcap:/pcap:ro
     networks:
       - ech-lab
     restart: unless-stopped
