@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
+COMPOSE=(docker compose -f "${ROOT_DIR}/docker-compose.yml" --project-directory "${ROOT_DIR}")
+
 PROTECTED_NAME="${PROTECTED_NAME:-protected.ech.test}"
 PUBLIC_NAME="${PUBLIC_NAME:-public.ech.test}"
 PORT="${PORT:-8443}"
-PCAP_DIR="${PCAP_DIR:-artifacts/pcap}"
+PCAP_DIR="${PCAP_DIR:-${ROOT_DIR}/artifacts/pcap}"
 ECH_FILE="/work/ech/${PROTECTED_NAME}.pem.ech"
 
 mkdir -p "$PCAP_DIR"
@@ -18,17 +22,17 @@ capture_request() {
   local mode="$1"
   local pcap="/captures/${mode}.pcap"
 
-  docker compose exec -T packet-capture sh -lc \
+  "${COMPOSE[@]}" exec -T packet-capture sh -lc \
     "rm -f '${pcap}' /tmp/tcpdump.pid; tcpdump -i any -U -s 0 -w '${pcap}' 'tcp port ${PORT}' >/tmp/tcpdump-${mode}.log 2>&1 & echo \$! >/tmp/tcpdump.pid"
 
   sleep 1
 
   if [ "$mode" = "plain" ]; then
-    docker compose exec -T ech-client \
+    "${COMPOSE[@]}" exec -T ech-client \
       curl -skS --tlsv1.3 --ech false \
       -o /dev/null "https://${PROTECTED_NAME}:${PORT}/ech-status"
   else
-    docker compose exec -T ech-client sh -lc "
+    "${COMPOSE[@]}" exec -T ech-client sh -lc "
       set -eu
       ECHCONFIG=\$(awk '
         /^-----BEGIN ECHCONFIG-----/ {inside=1; next}
@@ -43,7 +47,7 @@ capture_request() {
   fi
 
   sleep 1
-  docker compose exec -T packet-capture sh -lc \
+  "${COMPOSE[@]}" exec -T packet-capture sh -lc \
     'if [ -s /tmp/tcpdump.pid ]; then kill -INT "$(cat /tmp/tcpdump.pid)" 2>/dev/null || true; fi'
   sleep 1
 }
