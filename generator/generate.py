@@ -7,7 +7,6 @@ import argparse
 import csv
 import json
 import os
-import re
 import subprocess
 import sys
 import time
@@ -62,6 +61,7 @@ def parse_headers_and_meta(stdout: str) -> dict[str, Any]:
     result: dict[str, Any] = {
         "http_status": None,
         "curl_time_total_s": None,
+        "content_length": None,
         "ech_status": None,
         "outer_sni": None,
         "tls_sni": None,
@@ -70,7 +70,10 @@ def parse_headers_and_meta(stdout: str) -> dict[str, Any]:
     for raw_line in stdout.replace("\r\n", "\n").split("\n"):
         line = raw_line.strip()
         lower = line.lower()
-        if lower.startswith("x-ech-status:"):
+        if lower.startswith("content-length:"):
+            value = line.split(":", 1)[1].strip()
+            result["content_length"] = int(value) if value.isdigit() else None
+        elif lower.startswith("x-ech-status:"):
             result["ech_status"] = line.split(":", 1)[1].strip()
         elif lower.startswith("x-ech-outer-sni:"):
             result["outer_sni"] = line.split(":", 1)[1].strip()
@@ -143,6 +146,7 @@ def run_transaction(
         return {
             "http_status": None,
             "curl_time_total_s": None,
+            "content_length": None,
             "ech_status": None,
             "outer_sni": None,
             "tls_sni": None,
@@ -151,12 +155,15 @@ def run_transaction(
         }, url
 
 
-def transaction_failure(parsed: dict[str, Any], config: dict[str, Any]) -> list[str]:
+def transaction_failure(parsed: dict[str, Any], config: dict[str, Any], payload_name: str) -> list[str]:
     reasons: list[str] = []
+    expected_length = int(config["payload_profiles"][payload_name]["response_bytes"])
     if parsed["curl_exit_code"] != 0:
         reasons.append(f"curl_exit={parsed['curl_exit_code']}")
     if parsed["http_status"] != 200:
         reasons.append(f"http_status={parsed['http_status']}")
+    if parsed["content_length"] != expected_length:
+        reasons.append(f"content_length={parsed['content_length']} expected={expected_length}")
     if parsed["ech_status"] != "SUCCESS":
         reasons.append(f"ech_status={parsed['ech_status']}")
     if parsed["outer_sni"] != config["public_name"]:
@@ -173,6 +180,7 @@ def write_csv(path: Path, transactions: list[dict[str, Any]]) -> None:
         "payload_profile",
         "query_bytes",
         "response_bytes",
+        "response_content_length",
         "scheduled_interval_before_s",
         "scheduled_offset_s",
         "scheduled_timestamp_utc",
@@ -268,11 +276,11 @@ def main() -> int:
         actual_start_monotonic = time.monotonic()
         actual_start_utc = utc_now()
         actual_offset = actual_start_monotonic - trial_start_monotonic
-        parsed, url = run_transaction(config, echconfig, payload_name)
+        parsed, _url = run_transaction(config, echconfig, payload_name)
         actual_end_monotonic = time.monotonic()
         actual_end_utc = utc_now()
 
-        reasons = transaction_failure(parsed, config)
+        reasons = transaction_failure(parsed, config, payload_name)
         success = not reasons
         if reasons:
             failure_reasons.extend(f"request_{index + 1}:{reason}" for reason in reasons)
@@ -283,6 +291,7 @@ def main() -> int:
             "payload_profile": payload_name,
             "query_bytes": int(profile["query_bytes"]),
             "response_bytes": int(profile["response_bytes"]),
+            "response_content_length": parsed["content_length"],
             "url_path": f"/traffic/{payload_name}",
             "scheduled_interval_before_s": None if index == 0 else plan["scheduled_intervals_s"][index - 1],
             "scheduled_offset_s": target_offset,

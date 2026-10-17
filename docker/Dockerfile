@@ -123,7 +123,15 @@ RUN apt-get update \
     && groupadd --system --gid 101 nginx \
     && useradd --system --uid 101 --gid nginx --home-dir /nonexistent --shell /usr/sbin/nologin nginx \
     && install -d -o 101 -g 101 -m 0755 /var/cache/nginx /run \
-    && install -d -o 101 -g 101 -m 1777 /tmp
+    && install -d -o 101 -g 101 -m 1777 /tmp \
+    && install -d -o 101 -g 101 -m 0755 /srv/traffic \
+    && head -c 128 /dev/zero | tr '\0' 'A' > /srv/traffic/small.bin \
+    && head -c 512 /dev/zero | tr '\0' 'B' > /srv/traffic/medium.bin \
+    && head -c 2048 /dev/zero | tr '\0' 'C' > /srv/traffic/large.bin \
+    && test "$(wc -c < /srv/traffic/small.bin)" -eq 128 \
+    && test "$(wc -c < /srv/traffic/medium.bin)" -eq 512 \
+    && test "$(wc -c < /srv/traffic/large.bin)" -eq 2048 \
+    && chown 101:101 /srv/traffic/*.bin
 
 COPY --from=openssl-build /opt/openssl /opt/openssl
 COPY --from=nginx-build /usr/local/nginx /usr/local/nginx

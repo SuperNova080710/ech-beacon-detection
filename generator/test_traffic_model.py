@@ -74,10 +74,10 @@ class TrafficModelTests(unittest.TestCase):
         self.assertEqual(len(sequence), 100)
         self.assertTrue(set(sequence).issubset({"small", "medium", "large"}))
 
-    def test_payload_files_match_declared_response_sizes(self):
-        payload_dir = Path(__file__).with_name("payloads")
-        for name, profile in self.config["payload_profiles"].items():
-            self.assertEqual((payload_dir / f"{name}.bin").stat().st_size, int(profile["response_bytes"]))
+    def test_payload_sizes_are_predefined(self):
+        self.assertEqual(int(self.config["payload_profiles"]["small"]["response_bytes"]), 128)
+        self.assertEqual(int(self.config["payload_profiles"]["medium"]["response_bytes"]), 512)
+        self.assertEqual(int(self.config["payload_profiles"]["large"]["response_bytes"]), 2048)
 
 
 if __name__ == "__main__":

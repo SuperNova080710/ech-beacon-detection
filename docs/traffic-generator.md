@@ -76,6 +76,8 @@ Normal과 Beacon 모두 같은 payload profile 분포를 사용한다.
 | medium | 128 B | 512 B | 0.35 |
 | large | 512 B | 2048 B | 0.15 |
 
+응답 body는 NGINX image build 중 `/srv/traffic`에 정확히 128/512/2048 B로 생성하고 `wc -c`로 build-time 검증한다. Generator는 각 transaction의 `Content-Length`도 기대값과 비교한다.
+
 이를 통해 payload 크기 자체가 class label을 직접 나타내는 shortcut이 되는 것을 방지한다.
 
 ## 6. Seed
@@ -123,7 +125,7 @@ PCAP은 `.gitignore`에 의해 Git에 커밋되지 않는다.
 - scheduled IAT / scheduled offsets
 - payload profile sequence
 - transaction별 예정 시각과 실제 generator launch 시각
-- HTTP status
+- HTTP status / Content-Length
 - ECH status
 - outer SNI / protected TLS SNI
 - curl exit code
@@ -149,7 +151,7 @@ git switch "#3-traffic-generator"
 git pull --ff-only
 ```
 
-Python이 tools image에 추가되었으므로 이미지를 다시 빌드한다.
+Python과 고정-size payload가 image에 추가되었으므로 이미지를 다시 빌드한다.
 
 ```bash
 docker compose -f ./docker-compose.yml build
@@ -190,7 +192,9 @@ docker compose -f ./docker-compose.yml exec -T ech-client \
 - paired payload sequence
 - Normal profile interval 범위
 - 동일 seed 결정성
-- payload file 실제 byte size
+- payload profile 설정값
+
+실제 response body byte size는 Docker build 단계와 각 Native ECH transaction의 `Content-Length`에서 다시 검증한다.
 
 ## 10. 단일 trial 실행
 
@@ -235,15 +239,17 @@ RUN_TAG=pilot-v1 bash scripts/run-traffic-pilot.sh
 2. deterministic model unit test
 3. 각 trial별 tcpdump 시작
 4. 30개 Native ECH HTTPS transactions 실행
-5. PCAP 종료 및 SHA-256 계산
-6. TShark로 ClientHello timestamp/SNI 파싱
-7. manifest에 network-observed IAT 추가
-8. 8개 trial 전체 조건 검증
+5. HTTP `Content-Length` 검증
+6. PCAP 종료 및 SHA-256 계산
+7. TShark로 ClientHello timestamp/SNI 파싱
+8. manifest에 network-observed IAT 추가
+9. 8개 trial 전체 조건 검증
 
 ## 12. Pilot PASS 기준
 
 - 모든 trial이 30 transactions
 - 모든 transaction이 HTTP 200
+- 모든 response `Content-Length`가 payload profile 기대값과 일치
 - 모든 transaction의 ECH status가 `SUCCESS`
 - outer SNI가 `public.ech.test`
 - protected SNI가 서버 내부에서는 `protected.ech.test`

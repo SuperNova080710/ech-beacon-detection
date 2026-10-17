@@ -50,7 +50,6 @@ services:
     volumes:
       - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./docker/conf.d:/etc/nginx/conf.d:ro
-      - ./generator/payloads:/srv/traffic:ro
       - tls-certs:/etc/nginx/certs:ro
       - ech-config:/etc/nginx/ech:ro
     networks:
