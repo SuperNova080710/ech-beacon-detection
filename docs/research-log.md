@@ -354,13 +354,47 @@ GitHub Actions = 필요할 때 실행하는 최종 재현성 검증
 
 Workflow는 자동 push/pull_request trigger를 제거하고 `workflow_dispatch` 수동 실행 전용으로 변경했다.
 
-### 현재 판정
+### 최종 재기동 재현성 검증
 
-확인 완료:
+기능 검증이 끝난 뒤 testbed를 `docker compose down`으로 종료하고 동일 Compose 구성으로 다시 기동했다.
 
-- Docker image build
-- ECH bootstrap
-- NGINX healthcheck
+재기동 후 다음 세 검증을 다시 수행했다.
+
+```text
+verify-ech.sh
+capture-ech.sh
+verify-pcap.sh
+```
+
+재검증 결과:
+
+```text
+PASS: ECH OFF -> NOT_TRIED
+PASS: ECH ON  -> SUCCESS
+PASS: outer SNI -> public.ech.test
+```
+
+```text
+PASS: ECH OFF capture contains protected SNI: protected.ech.test
+PASS: ECH ON capture does not contain protected SNI as plaintext
+PASS: ECH ON capture contains public outer SNI: public.ech.test
+```
+
+```text
+PASS: plain.pcap -> SNI protected.ech.test
+PASS: ech.pcap   -> outer SNI public.ech.test
+PASS: ech.pcap   -> protected SNI not visible in parsed ClientHello
+```
+
+재기동 후에도 최초 검증과 동일한 결과가 유지되었다.
+
+### 최종 판정
+
+Issue #1에서 정의한 기술적 완료 조건을 모두 충족했다.
+
+- Docker image build 성공
+- ECH bootstrap 성공
+- NGINX healthy
 - ECH OFF `NOT_TRIED`
 - ECH ON `SUCCESS`
 - outer SNI `public.ech.test`
@@ -368,5 +402,6 @@ Workflow는 자동 push/pull_request trigger를 제거하고 `workflow_dispatch`
 - ECH ON PCAP protected SNI 비노출
 - ECH ON PCAP public outer SNI 노출
 - TShark protocol-aware ClientHello SNI 검증
+- testbed 종료 후 재기동 및 동일 결과 재현
 
-Issue #1의 마지막 재현성 확인으로 testbed를 한 번 종료 후 다시 기동하여 동일 검증 스크립트 결과가 유지되는지 확인한다. 그 확인 전에는 본 실험 traffic 생성으로 넘어가지 않는다.
+따라서 Native ECH testbed 구축 및 재현성 검증 단계는 완료로 판정한다. 다음 단계부터 Normal/Beacon traffic generator 설계 및 구현으로 진행할 수 있다.
