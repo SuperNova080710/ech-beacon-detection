@@ -12,7 +12,8 @@
 2. ECH ON 요청에서 서버가 ECH를 실제로 `SUCCESS`로 처리한다.
 3. ECH OFF packet capture에는 protected SNI가 평문으로 존재한다.
 4. ECH ON packet capture에는 protected SNI가 평문으로 노출되지 않는다.
-5. 같은 절차를 반복 재현할 수 있다.
+5. protocol-aware parser에서도 ECH ON ClientHello에는 public outer SNI만 보인다.
+6. 같은 절차를 반복 재현할 수 있다.
 
 ## 2. 버전 고정
 
@@ -21,12 +22,13 @@
 | OpenSSL | 4.0.1 |
 | NGINX | 1.30.6 |
 | curl | 8.20.0 |
+| TShark | 4.0.17 |
 | TLS | 1.3 |
 | ECH | RFC 9849 / ECHConfig version 0xfe0d |
 
 OpenSSL 4.0부터 RFC 9849 ECH가 지원되며, NGINX의 `ssl_ech_file` directive는 1.29.4부터 제공되고 OpenSSL 4.0+가 필요하다.
 
-호스트의 OpenSSL/curl은 변경하지 않는다. 모든 ECH 의존성은 Docker 이미지 안에 격리한다.
+호스트의 OpenSSL/curl/tshark는 변경하지 않는다. 모든 ECH 및 packet-analysis 의존성은 Docker 이미지 안에 격리한다.
 
 ## 3. 테스트 이름
 
@@ -65,24 +67,37 @@ Client는 DNS HTTPS RR 대신 실험용 ECH PEM에서 추출한 ECHConfigList를
 
 ## 5. 최초 실행
 
-로컬 `main`을 최신 상태로 만든 뒤 Issue branch를 체크아웃한다.
+Issue branch를 최신 상태로 만든다.
 
 ```bash
 git fetch origin
-git checkout "#1-ech-testbed"
-git pull origin "#1-ech-testbed"
+git switch "#1-ech-testbed"
+git pull --ff-only
 ```
 
-Compose 구문을 먼저 확인한다.
+Compose 파일을 명시해서 구문과 service 목록을 확인한다.
 
 ```bash
-docker compose config
+docker compose -f ./docker-compose.yml config
+```
+
+```bash
+docker compose -f ./docker-compose.yml config --services
+```
+
+정상 service 목록:
+
+```text
+ech-bootstrap
+ech-nginx
+ech-client
+packet-capture
 ```
 
 이미지를 빌드한다.
 
 ```bash
-docker compose build
+docker compose -f ./docker-compose.yml build
 ```
 
 첫 빌드는 OpenSSL, NGINX, curl을 source에서 컴파일하므로 시간이 걸릴 수 있다.
@@ -90,13 +105,13 @@ docker compose build
 서비스를 시작한다.
 
 ```bash
-docker compose up -d
+docker compose -f ./docker-compose.yml up -d
 ```
 
 상태 확인:
 
 ```bash
-docker compose ps -a
+docker compose -f ./docker-compose.yml ps -a
 ```
 
 정상 상태의 기대값:
@@ -143,6 +158,8 @@ artifacts/evidence/
 
 ## 7. Packet capture
 
+ECH OFF/ON 요청을 각각 별도 PCAP으로 생성한다.
+
 ```bash
 bash scripts/capture-ech.sh
 ```
@@ -156,13 +173,50 @@ artifacts/pcap/ech.pcap
 
 `*.pcap`은 `.gitignore`에 의해 Git에 커밋되지 않는다.
 
-스크립트의 1차 검증 기준:
+### 7.1 Raw-byte sanity check
+
+`capture-ech.sh`는 캡처 직후 다음을 1차 확인한다.
 
 - `plain.pcap`에서 `protected.ech.test`가 평문으로 검색되어야 한다.
 - `ech.pcap`에서 `protected.ech.test`가 평문으로 검색되면 실패한다.
-- `ech.pcap`에서 outer name인 `public.ech.test`가 확인되는 것이 예상된다.
+- `ech.pcap`에서 outer name인 `public.ech.test`가 확인되어야 한다.
 
-이 raw-byte 검색은 빠른 sanity check이며, 후속 feature-extraction 단계에서는 protocol-aware parsing을 별도로 구현한다.
+이 검사는 빠른 sanity check이며 최종 프로토콜 증거는 다음 TShark 검증을 사용한다.
+
+### 7.2 Protocol-aware ClientHello SNI 검증
+
+TShark는 host가 아니라 `ech-tools` Docker image 안에 포함된다.
+
+버전 확인:
+
+```bash
+docker compose -f ./docker-compose.yml exec -T packet-capture tshark --version
+```
+
+기존 PCAP의 TLS ClientHello `server_name` extension을 파싱한다.
+
+```bash
+bash scripts/verify-pcap.sh
+```
+
+검증 기준:
+
+```text
+plain.pcap
+  tls.handshake.extensions_server_name = protected.ech.test
+
+ech.pcap
+  tls.handshake.extensions_server_name = public.ech.test
+  protected.ech.test는 파싱된 ClientHello에 나타나지 않아야 함
+```
+
+정상 출력의 핵심:
+
+```text
+PASS: plain.pcap -> SNI protected.ech.test
+PASS: ech.pcap   -> outer SNI public.ech.test
+PASS: ech.pcap   -> protected SNI not visible in parsed ClientHello
+```
 
 ## 8. 인증서/ECHConfig 재생성
 
@@ -171,72 +225,140 @@ artifacts/pcap/ech.pcap
 강제 재생성:
 
 ```bash
-FORCE_REGENERATE=1 docker compose up --build --force-recreate ech-bootstrap
+FORCE_REGENERATE=1 docker compose -f ./docker-compose.yml up --build --force-recreate ech-bootstrap
 ```
 
 그 후 서버를 다시 생성한다.
 
 ```bash
-docker compose up -d --force-recreate ech-nginx ech-client packet-capture
+docker compose -f ./docker-compose.yml up -d --force-recreate ech-nginx ech-client packet-capture
 ```
 
 완전 초기화가 필요한 경우:
 
 ```bash
-docker compose down -v
+docker compose -f ./docker-compose.yml down -v
 ```
 
 주의: `-v`는 testbed가 생성한 TLS/ECH named volume을 삭제한다.
 
 ## 9. 문제 확인 순서
 
+### Compose 대상 확인
+
+상위 경로의 다른 Compose project를 잘못 실행하지 않도록 항상 파일을 명시한다.
+
+```bash
+docker compose -f ./docker-compose.yml config --services
+```
+
+### Bootstrap 로그
+
+```bash
+docker compose -f ./docker-compose.yml logs --timestamps ech-bootstrap
+```
+
 ### NGINX configuration
 
 ```bash
-docker compose exec ech-nginx nginx -t
+docker compose -f ./docker-compose.yml exec -T ech-nginx nginx -t
 ```
 
 ### NGINX/OpenSSL build 확인
 
 ```bash
-docker compose exec ech-nginx nginx -V
+docker compose -f ./docker-compose.yml exec -T ech-nginx nginx -V
 ```
 
 ### Client OpenSSL
 
 ```bash
-docker compose exec ech-client openssl version
+docker compose -f ./docker-compose.yml exec -T ech-client openssl version
 ```
 
 ### Client curl
 
 ```bash
-docker compose exec ech-client curl --version
+docker compose -f ./docker-compose.yml exec -T ech-client /opt/curl-ech/bin/curl --version
 ```
 
-### 로그
+### TShark
 
 ```bash
-docker compose logs --tail=200 ech-bootstrap ech-nginx
+docker compose -f ./docker-compose.yml exec -T packet-capture tshark --version
 ```
 
-## 10. 완료 판정
+### 전체 로그
+
+```bash
+docker compose -f ./docker-compose.yml logs --tail=200 ech-bootstrap ech-nginx
+```
+
+## 10. 최종 재현성 확인
+
+모든 기능 검증이 끝난 뒤 testbed를 종료했다가 다시 기동하여 동일한 결과가 나오는지 한 번 더 확인한다.
+
+```bash
+docker compose -f ./docker-compose.yml down
+```
+
+```bash
+docker compose -f ./docker-compose.yml up -d
+```
+
+```bash
+docker compose -f ./docker-compose.yml ps -a
+```
+
+```bash
+bash scripts/verify-ech.sh
+```
+
+```bash
+bash scripts/capture-ech.sh
+```
+
+```bash
+bash scripts/verify-pcap.sh
+```
+
+세 스크립트가 모두 PASS해야 Issue #1의 재현성 완료 조건을 충족한 것으로 기록한다.
+
+## 11. 완료 판정
 
 Issue #1은 다음 결과가 실제 실행으로 확인되어야 완료 처리한다.
 
-- [ ] `docker compose config` 성공
-- [ ] image build 성공
-- [ ] NGINX healthy
-- [ ] ECH OFF = `NOT_TRIED`
-- [ ] ECH ON = `SUCCESS`
-- [ ] ECH outer SNI = `public.ech.test`
-- [ ] plain PCAP에 protected SNI 존재
-- [ ] ECH PCAP에 protected SNI 평문 부재
-- [ ] 재실행 시 동일 결과 재현
+- [x] `docker compose -f ./docker-compose.yml config` 성공
+- [x] image build 성공
+- [x] NGINX healthy
+- [x] ECH OFF = `NOT_TRIED`
+- [x] ECH ON = `SUCCESS`
+- [x] ECH outer SNI = `public.ech.test`
+- [x] plain PCAP에 protected SNI 존재
+- [x] ECH PCAP에 protected SNI 평문 부재
+- [x] TShark에서 plain ClientHello SNI = `protected.ech.test`
+- [x] TShark에서 ECH ClientHello outer SNI = `public.ech.test`
+- [x] TShark에서 ECH ClientHello에 protected SNI 비노출
+- [ ] testbed 재기동 후 동일 결과 재현
 
-실제 검증 결과는 결과를 확인한 뒤 `docs/research-log.md`에 사실 그대로 추가한다. 실패한 결과도 삭제하지 않는다.
+실제 검증 결과는 `docs/research-log.md`에 사실 그대로 기록한다. 실패한 결과도 삭제하지 않는다.
 
-## 11. 이번 Issue에서 하지 않는 것
+## 12. GitHub Actions
+
+GitHub Actions는 로컬 실험의 필수 구성요소가 아니다.
+
+현재 workflow는 자동 push/pull_request trigger 없이 `workflow_dispatch` 수동 실행 전용으로 둔다.
+
+역할:
+
+```text
+로컬 Docker = 개발, 디버깅, 실제 실험 및 원자료 생성
+GitHub Actions = 필요할 때 수행하는 최종 재현성 검증
+```
+
+로컬 검증이 완료된 뒤 필요하면 GitHub Actions를 수동 실행해 별도 환경에서도 동일 절차가 성공하는지 확인한다.
+
+## 13. 이번 Issue에서 하지 않는 것
 
 다음은 후속 Issue 범위다.
 
