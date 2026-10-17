@@ -10,6 +10,7 @@ PUBLIC_NAME="${PUBLIC_NAME:-public.ech.test}"
 PORT="${PORT:-8443}"
 PCAP_DIR="${PCAP_DIR:-${ROOT_DIR}/artifacts/pcap}"
 ECH_FILE="/work/ech/${PROTECTED_NAME}.pem.ech"
+CURL_BIN="/opt/curl-ech/bin/curl"
 
 mkdir -p "$PCAP_DIR"
 
@@ -29,7 +30,7 @@ capture_request() {
 
   if [ "$mode" = "plain" ]; then
     "${COMPOSE[@]}" exec -T ech-client \
-      curl -skS --tlsv1.3 --ech false \
+      "$CURL_BIN" -skS --tlsv1.3 --ech false \
       -o /dev/null "https://${PROTECTED_NAME}:${PORT}/ech-status"
   else
     "${COMPOSE[@]}" exec -T ech-client sh -lc "
@@ -41,7 +42,7 @@ capture_request() {
         END {print \"\"}
       ' '${ECH_FILE}')
       test -n \"\$ECHCONFIG\"
-      curl -skS --tlsv1.3 --ech \"ecl:\${ECHCONFIG}\" \
+      '${CURL_BIN}' -skS --tlsv1.3 --ech \"ecl:\${ECHCONFIG}\" \
         -o /dev/null "https://${PROTECTED_NAME}:${PORT}/ech-status"
     "
   fi
