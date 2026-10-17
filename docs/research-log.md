@@ -354,54 +354,245 @@ GitHub Actions = 필요할 때 실행하는 최종 재현성 검증
 
 Workflow는 자동 push/pull_request trigger를 제거하고 `workflow_dispatch` 수동 실행 전용으로 변경했다.
 
-### 최종 재기동 재현성 검증
+### 재기동 재현성 검증
 
-기능 검증이 끝난 뒤 testbed를 `docker compose down`으로 종료하고 동일 Compose 구성으로 다시 기동했다.
+Testbed를 종료한 뒤 다시 기동하고 다음 세 검증을 반복했다.
 
-재기동 후 다음 세 검증을 다시 수행했다.
+- `bash scripts/verify-ech.sh`
+- `bash scripts/capture-ech.sh`
+- `bash scripts/verify-pcap.sh`
+
+세 검증 모두 최초 실행과 동일하게 PASS했다.
+
+따라서 Issue #1의 Native ECH testbed는 로컬 Docker 환경에서 재기동 후에도 동일 결과를 재현할 수 있음을 확인했다.
+
+---
+
+## 2026-10-17 — Traffic Generator 사전 조건 고정
+
+### 목적
+
+Issue #3의 generator를 구현하기 전에 결과를 보고 바꾸지 않을 timing, seed, payload, sample 정의를 먼저 고정한다.
+
+### Sample 정의
+
+한 sample은 단일 TCP 5-tuple 하나가 아니라 동일 client에서 동일 protected ECH server로 발생한 **30개의 short-lived HTTPS flow sequence**로 정의한다.
+
+각 transaction은 별도의 curl 프로세스로 새 TLS/ECH 연결을 사용한다.
+
+### Beacon 조건
+
+- base interval: `1.0 s`
+- jitter: `0/10/30/50/70%`
+- jitter별 `20 trials`
+- trial당 `30 transactions`
+- scheduled IAT: `29개`
+
+Jitter는 다음으로 고정한다.
 
 ```text
-verify-ech.sh
-capture-ech.sh
-verify-pcap.sh
+z_i ~ Uniform(-1, 1)
+I_i(j) = 1.0 × (1 + j × z_i)
 ```
 
-재검증 결과:
+동일 trial 번호는 jitter level이 달라도 같은 normalized `z_i` sequence를 사용한다. 따라서 jitter amplitude만 달라지는 paired comparison을 수행할 수 있다.
+
+Beacon timing seed는 다음으로 고정한다.
 
 ```text
-PASS: ECH OFF -> NOT_TRIED
-PASS: ECH ON  -> SUCCESS
-PASS: outer SNI -> public.ech.test
+trial_seed = 20261017 + trial_id
 ```
+
+### Normal 조건
+
+총 100 samples를 다음 세 profile로 나눈다.
+
+- interactive-burst: 40
+- irregular-lognormal: 30
+- mixed-activity: 30
+
+각 sample은 30 transactions를 포함한다.
+
+Normal timing seed는 beacon과 별도 namespace를 사용한다.
 
 ```text
-PASS: ECH OFF capture contains protected SNI: protected.ech.test
-PASS: ECH ON capture does not contain protected SNI as plaintext
-PASS: ECH ON capture contains public outer SNI: public.ech.test
+normal timing seed base = 20262017
 ```
+
+### Payload 조건
+
+Beacon과 Normal은 class label에 payload 크기가 직접 대응하지 않도록 동일한 profile과 선택 확률을 사용한다.
+
+- small: query 32 B / response 128 B / probability 0.50
+- medium: query 128 B / response 512 B / probability 0.35
+- large: query 512 B / response 2048 B / probability 0.15
+
+Beacon payload seed base는 `20263017`, Normal payload seed base는 `20264017`로 분리한다.
+
+동일 beacon trial 번호는 모든 jitter level에서 같은 payload profile sequence를 사용한다.
+
+### Pilot 원칙
+
+본 실험 200 samples를 바로 생성하지 않는다.
+
+먼저 다음 8 trials만 실행하여 generator 정확성과 재현성을 검증한다.
+
+- Beacon: jitter별 trial 1 → 5 trials
+- Normal: 각 profile trial 1 → 3 trials
+
+Pilot 결과는 detector 성능 평가 데이터로 사용하지 않는다.
+
+### 현재 상태
+
+이 기록 시점에는 아직 pilot 결과를 생성하지 않았다. 다음 단계는 generator 코드와 trial capture orchestration을 구현한 뒤 정적 테스트를 통과시키는 것이다.
+
+---
+
+## 2026-10-17 — Traffic Generator 구현 및 pilot 검증
+
+### 구현 완료
+
+Issue #3에서 다음을 구현했다.
+
+- deterministic beacon jitter generator
+- Normal traffic 3개 profile
+- class-independent payload profile
+- Native ECH HTTPS transaction runner
+- trial별 manifest 및 flow-metadata CSV
+- trial별 PCAP capture와 SHA-256 매핑
+- TShark 기반 ClientHello timestamp / outer SNI 추출
+- scheduled IAT와 network-observed ClientHello IAT 비교
+- 8-trial pilot 자동 검증
+
+정적 generator unit test는 총 10개이며 모두 통과했다.
+
+### 실패 4 — Python minimal image에서 `unittest` 누락
+
+초기 `ech-tools` image에는 `python3-minimal`을 사용했다. 이 image에서 다음 오류가 발생했다.
 
 ```text
-PASS: plain.pcap -> SNI protected.ech.test
-PASS: ech.pcap   -> outer SNI public.ech.test
-PASS: ech.pcap   -> protected SNI not visible in parsed ClientHello
+ModuleNotFoundError: No module named 'unittest'
 ```
 
-재기동 후에도 최초 검증과 동일한 결과가 유지되었다.
+원인은 generator 코드가 아니라 Debian minimal Python package가 전체 표준 라이브러리를 포함하지 않는 것이었다.
 
-### 최종 판정
+수정:
 
-Issue #1에서 정의한 기술적 완료 조건을 모두 충족했다.
+- `python3-minimal` → `python3`
+- Docker build 단계에서 `json`, `random`, `statistics`, `unittest` import 검증 추가
 
-- Docker image build 성공
-- ECH bootstrap 성공
-- NGINX healthy
-- ECH OFF `NOT_TRIED`
-- ECH ON `SUCCESS`
+수정 후 10개 unit test가 모두 PASS했다.
+
+### 실패 5 — `pilot-v1` 마지막 ClientHello 캡처 누락
+
+최초 8-trial pilot `pilot-v1`에서 generator 관점의 요청은 모두 성공했다.
+
+각 trial:
+
+```text
+TRANSACTIONS=30
+STATUS=success
+```
+
+Native ECH도 정상적으로 `SUCCESS`를 반환했다.
+
+하지만 PCAP finalization 결과 모든 trial의 ClientHello count가 다음처럼 29개였다.
+
+```text
+CLIENTHELLO_COUNT=29
+```
+
+최종 pilot verifier는 다음 조건에서 실패했다.
+
+```text
+expected 30 ClientHello packets, got 29
+```
+
+이 실패 데이터는 삭제하지 않고 `pilot-v1` raw data/PCAP으로 보존했다.
+
+### 원인 분리
+
+동일 PCAP에 대해 TShark filter를 두 방식으로 재확인했다.
+
+```text
+tls.handshake.type == 1 && !tcp.analysis.retransmission → 29
+tls.handshake.type == 1                            → 29
+```
+
+따라서 retransmission filter 때문에 하나가 제외된 것은 아니었다.
+
+또한 10/30/50/70% jitter 조건에서도 scheduled-vs-PCAP IAT 오차가 수 ms 수준으로 작았으므로 첫 ClientHello 누락보다는 마지막 ClientHello가 캡처 종료 시점에 유실된 패턴과 일치했다.
+
+### 수정
+
+`run-traffic-trial.sh`의 capture 종료 절차를 다음처럼 수정했다.
+
+1. generator 종료 후 capture drain 시간 확보
+2. tcpdump에 SIGINT 전달
+3. tcpdump가 실제 종료했는지 확인
+4. zombie 상태를 종료 완료로 판정
+5. 종료 이후에만 PCAP SHA-256과 TShark 분석 수행
+
+### `capture-check-v1` 회귀 검증
+
+70% jitter beacon 단일 trial로 회귀 검증했다.
+
+```text
+TRANSACTIONS=30
+CLIENTHELLO_COUNT=30
+MEAN_ABS_IAT_ERROR_S=0.002370569
+MAX_ABS_IAT_ERROR_S=0.009560842
+PASS: beacon-j70-t01
+```
+
+같은 PCAP을 TShark로 별도 읽어도 ClientHello count가 `30`임을 확인했다.
+
+### `pilot-v2` 최종 결과
+
+수정 후 새로운 run tag `pilot-v2`로 8-trial pilot을 다시 실행했다.
+
+모든 Beacon/Normal trial이 다음을 만족했다.
+
+- 30 HTTPS transactions
+- 30 protocol-parsed ClientHello
+- HTTP 200
+- expected Content-Length
+- Native ECH `SUCCESS`
 - outer SNI `public.ech.test`
-- ECH OFF PCAP protected SNI 노출
-- ECH ON PCAP protected SNI 비노출
-- ECH ON PCAP public outer SNI 노출
-- TShark protocol-aware ClientHello SNI 검증
-- testbed 종료 후 재기동 및 동일 결과 재현
+- manifest / PCAP SHA-256 mapping
+- scheduled / network-observed IAT 보존
 
-따라서 Native ECH testbed 구축 및 재현성 검증 단계는 완료로 판정한다. 다음 단계부터 Normal/Beacon traffic generator 설계 및 구현으로 진행할 수 있다.
+trial별 mean absolute scheduled-vs-PCAP IAT error:
+
+```text
+beacon-j00-t01                  0.001442054 s
+beacon-j10-t01                  0.001286469 s
+beacon-j30-t01                  0.001379604 s
+beacon-j50-t01                  0.002455262 s
+beacon-j70-t01                  0.002432466 s
+normal-interactive-burst-t01    0.001929140 s
+normal-irregular-lognormal-t01  0.001476971 s
+normal-mixed-activity-t01       0.001600079 s
+```
+
+최종 verifier:
+
+```text
+PASS: all 8 pilot trials satisfy the pre-defined generator conditions
+PASS: Native ECH SUCCESS and public outer SNI confirmed for every transaction
+PASS: 30 protocol-parsed ClientHello packets confirmed per trial
+PASS: scheduled and network-observed ClientHello IAT are both preserved
+PASS: paired jitter and payload sequences are deterministic
+```
+
+### 현재 결정
+
+Issue #3의 generator 구현과 pilot 검증은 완료했다.
+
+- `pilot-v1`: 실패 원자료 보존
+- `capture-check-v1`: capture 종료 수정 회귀 검증
+- `pilot-v2`: 최종 성공 pilot
+
+Pilot 데이터는 detector 성능 평가에는 사용하지 않는다.
+
+아직 최종 200+ sample 본 실험은 실행하지 않는다. 다음 단계는 PCAP 기반 feature extractor의 정의와 구현이며, feature 정의를 고정한 뒤 본 실험 데이터를 생성한다.
