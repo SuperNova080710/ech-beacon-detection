@@ -26,6 +26,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Prepare evidence directories
+        run: mkdir -p artifacts/evidence artifacts/pcap
+
       - name: Docker versions
         run: |
           docker --version
@@ -38,16 +41,30 @@ jobs:
         run: docker compose build
 
       - name: Start ECH lab
-        run: docker compose up -d
+        run: |
+          set -o pipefail
+          docker compose up -d 2>&1 | tee artifacts/evidence/compose-up.log
 
       - name: Show service status
-        run: docker compose ps -a
+        if: always()
+        run: |
+          docker compose ps -a | tee artifacts/evidence/compose-ps.txt
 
       - name: Verify native ECH
+        if: success()
         run: bash scripts/verify-ech.sh
 
       - name: Capture and validate SNI visibility
+        if: success()
         run: bash scripts/capture-ech.sh
+
+      - name: Collect diagnostics
+        if: always()
+        run: |
+          docker compose logs --no-color --timestamps > artifacts/evidence/compose-logs.txt 2>&1 || true
+          docker compose ps -a --format json > artifacts/evidence/compose-ps.json 2>&1 || true
+          docker image inspect ech-beacon-tools:openssl-4.0.1-curl-8.20.0 > artifacts/evidence/tools-image.json 2>&1 || true
+          docker image inspect ech-beacon-nginx:nginx-1.30.6-openssl-4.0.1 > artifacts/evidence/nginx-image.json 2>&1 || true
 
       - name: Upload verification evidence
         if: always()
@@ -57,12 +74,8 @@ jobs:
           path: |
             artifacts/evidence/
             artifacts/pcap/
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 7
-
-      - name: Show logs on failure
-        if: failure()
-        run: docker compose logs --no-color --tail=300
 
       - name: Cleanup
         if: always()
