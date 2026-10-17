@@ -1,0 +1,15 @@
+.git
+.gitignore
+artifacts/
+data/
+results/
+references/
+docs/
+node_modules/
+.venv/
+__pycache__/
+*.pcap
+*.pcapng
+*.zip
+.env
+.env.*
