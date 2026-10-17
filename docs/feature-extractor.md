@@ -317,7 +317,85 @@ OVERWRITE=1 RUN_TAG=pilot-v2 bash scripts/extract-pilot-features.sh
 
 Raw PCAP과 raw manifest는 변경하거나 삭제하지 않는다.
 
-## 17. 범위 제외
+## 17. Pilot-v2 실제 acceptance 결과
+
+2026-10-17 로컬 Docker 환경에서 최종 `pilot-v2` 8개 trial을 검증했다.
+
+순수 계산 unit test:
+
+```text
+Ran 6 tests in 0.001s
+OK
+```
+
+모든 trial:
+
+```text
+flow_count       = 30
+flow_start_count = 30
+iat_count        = 29
+packet_count     = 510
+validation       = pass
+```
+
+최종 batch verifier:
+
+```text
+PASS: pilot-v2 contains exactly 8 feature rows and 8 label rows
+PASS: all 13 features are finite for every pilot trial
+PASS: feature and label trial IDs match one-to-one
+PASS: all pilot trials contain 30 TCP flows and 29 flow-start IAT values
+PASS: provenance validation and extraction timing are complete
+PASS: Feature Extractor pilot completed for RUN_TAG=pilot-v2
+```
+
+실제 feature sanity check에서 다음을 확인했다.
+
+- Beacon jitter가 증가할수록 timing variation(`iat_std_s`, `iat_cv`)이 증가한다.
+- interactive-burst normal trial은 `burst_count=9`, `burst_mean_size=3.333...`으로 생성 모델의 burst 구조가 PCAP 기반 feature에 반영된다.
+- 동일 beacon trial 번호는 paired payload design 때문에 packet-size/directionality 값이 거의 동일하다.
+- class/condition 정보는 `features.csv`에 포함되지 않고 `labels.csv`에 분리된다.
+
+## 18. 결정성 검증
+
+동일한 `pilot-v2` PCAP/manifest를 대상으로 extractor를 재실행하고 `features.csv`, `labels.csv` SHA-256을 비교했다.
+
+재실행 전후 hash:
+
+```text
+features.csv
+a9199ee5096748b7c629a498bc7e3859ae510ff5e3a09a0c9151963588323857
+
+labels.csv
+da8f9febac90dbb94ab0a7c65a81650adeddf05d91443d68c82c2b5db1518dde
+```
+
+두 hash는 재추출 전후 동일했고 `diff` 출력이 없었으며 명시적 비교도 다음과 같이 통과했다.
+
+```text
+PASS: feature output deterministic
+```
+
+`provenance.json`은 실행 시각과 처리 시간(`extracted_at_utc`, `tshark_parse_ms`, `feature_compute_ms`, `total_extraction_ms`)을 포함하므로 byte-identical 대상으로 정의하지 않는다. Raw source/hash, validation structure, feature definition version은 provenance로 계속 보존한다.
+
+## 19. Feature schema 동결
+
+Pilot acceptance와 deterministic 재추출 검증을 통과했으므로 다음 schema를 detector 구현 전에 동결한다.
+
+```text
+extractor_schema_version = 1
+feature_definition_version = 1.0.0
+server_port = 8443
+expected_flow_count = 30
+burst_gap_threshold_s = 0.5
+feature_count = 13
+```
+
+이후 detector 결과를 보고 feature 정의, burst threshold, packet-size 기준, directionality 산식을 사후 변경하지 않는다.
+
+수정이 반드시 필요한 구현 오류가 발견되면 기존 schema를 덮어쓰지 않고 feature definition version을 올리고 `docs/research-log.md`에 변경 이유와 영향을 기록한다.
+
+## 20. 범위 제외
 
 Issue #5에서는 다음을 하지 않는다.
 
@@ -329,4 +407,4 @@ Issue #5에서는 다음을 하지 않는다.
 - 최종 성능 지표 계산
 - 결과 그래프 생성
 
-Pilot-v2 extractor validation을 통과하고 feature schema를 동결한 뒤 detector 단계로 진행한다.
+Feature schema `1.0.0` 동결 이후 다음 단계에서 detector 설계로 진행한다.
