@@ -24,7 +24,9 @@ RUN ./config \
         --openssldir=/opt/openssl \
         no-tests \
     && make -j"$(nproc)" \
-    && make install_sw
+    && make install_sw \
+    && make install_ssldirs \
+    && test -s /opt/openssl/openssl.cnf
 
 FROM ${DEBIAN_IMAGE} AS nginx-build
 ARG NGINX_VERSION=1.30.6
