@@ -445,3 +445,154 @@ Pilot 결과는 detector 성능 평가 데이터로 사용하지 않는다.
 ### 현재 상태
 
 이 기록 시점에는 아직 pilot 결과를 생성하지 않았다. 다음 단계는 generator 코드와 trial capture orchestration을 구현한 뒤 정적 테스트를 통과시키는 것이다.
+
+---
+
+## 2026-10-17 — Traffic Generator 구현 및 pilot 검증
+
+### 구현 완료
+
+Issue #3에서 다음을 구현했다.
+
+- deterministic beacon jitter generator
+- Normal traffic 3개 profile
+- class-independent payload profile
+- Native ECH HTTPS transaction runner
+- trial별 manifest 및 flow-metadata CSV
+- trial별 PCAP capture와 SHA-256 매핑
+- TShark 기반 ClientHello timestamp / outer SNI 추출
+- scheduled IAT와 network-observed ClientHello IAT 비교
+- 8-trial pilot 자동 검증
+
+정적 generator unit test는 총 10개이며 모두 통과했다.
+
+### 실패 4 — Python minimal image에서 `unittest` 누락
+
+초기 `ech-tools` image에는 `python3-minimal`을 사용했다. 이 image에서 다음 오류가 발생했다.
+
+```text
+ModuleNotFoundError: No module named 'unittest'
+```
+
+원인은 generator 코드가 아니라 Debian minimal Python package가 전체 표준 라이브러리를 포함하지 않는 것이었다.
+
+수정:
+
+- `python3-minimal` → `python3`
+- Docker build 단계에서 `json`, `random`, `statistics`, `unittest` import 검증 추가
+
+수정 후 10개 unit test가 모두 PASS했다.
+
+### 실패 5 — `pilot-v1` 마지막 ClientHello 캡처 누락
+
+최초 8-trial pilot `pilot-v1`에서 generator 관점의 요청은 모두 성공했다.
+
+각 trial:
+
+```text
+TRANSACTIONS=30
+STATUS=success
+```
+
+Native ECH도 정상적으로 `SUCCESS`를 반환했다.
+
+하지만 PCAP finalization 결과 모든 trial의 ClientHello count가 다음처럼 29개였다.
+
+```text
+CLIENTHELLO_COUNT=29
+```
+
+최종 pilot verifier는 다음 조건에서 실패했다.
+
+```text
+expected 30 ClientHello packets, got 29
+```
+
+이 실패 데이터는 삭제하지 않고 `pilot-v1` raw data/PCAP으로 보존했다.
+
+### 원인 분리
+
+동일 PCAP에 대해 TShark filter를 두 방식으로 재확인했다.
+
+```text
+tls.handshake.type == 1 && !tcp.analysis.retransmission → 29
+tls.handshake.type == 1                            → 29
+```
+
+따라서 retransmission filter 때문에 하나가 제외된 것은 아니었다.
+
+또한 10/30/50/70% jitter 조건에서도 scheduled-vs-PCAP IAT 오차가 수 ms 수준으로 작았으므로 첫 ClientHello 누락보다는 마지막 ClientHello가 캡처 종료 시점에 유실된 패턴과 일치했다.
+
+### 수정
+
+`run-traffic-trial.sh`의 capture 종료 절차를 다음처럼 수정했다.
+
+1. generator 종료 후 capture drain 시간 확보
+2. tcpdump에 SIGINT 전달
+3. tcpdump가 실제 종료했는지 확인
+4. zombie 상태를 종료 완료로 판정
+5. 종료 이후에만 PCAP SHA-256과 TShark 분석 수행
+
+### `capture-check-v1` 회귀 검증
+
+70% jitter beacon 단일 trial로 회귀 검증했다.
+
+```text
+TRANSACTIONS=30
+CLIENTHELLO_COUNT=30
+MEAN_ABS_IAT_ERROR_S=0.002370569
+MAX_ABS_IAT_ERROR_S=0.009560842
+PASS: beacon-j70-t01
+```
+
+같은 PCAP을 TShark로 별도 읽어도 ClientHello count가 `30`임을 확인했다.
+
+### `pilot-v2` 최종 결과
+
+수정 후 새로운 run tag `pilot-v2`로 8-trial pilot을 다시 실행했다.
+
+모든 Beacon/Normal trial이 다음을 만족했다.
+
+- 30 HTTPS transactions
+- 30 protocol-parsed ClientHello
+- HTTP 200
+- expected Content-Length
+- Native ECH `SUCCESS`
+- outer SNI `public.ech.test`
+- manifest / PCAP SHA-256 mapping
+- scheduled / network-observed IAT 보존
+
+trial별 mean absolute scheduled-vs-PCAP IAT error:
+
+```text
+beacon-j00-t01                  0.001442054 s
+beacon-j10-t01                  0.001286469 s
+beacon-j30-t01                  0.001379604 s
+beacon-j50-t01                  0.002455262 s
+beacon-j70-t01                  0.002432466 s
+normal-interactive-burst-t01    0.001929140 s
+normal-irregular-lognormal-t01  0.001476971 s
+normal-mixed-activity-t01       0.001600079 s
+```
+
+최종 verifier:
+
+```text
+PASS: all 8 pilot trials satisfy the pre-defined generator conditions
+PASS: Native ECH SUCCESS and public outer SNI confirmed for every transaction
+PASS: 30 protocol-parsed ClientHello packets confirmed per trial
+PASS: scheduled and network-observed ClientHello IAT are both preserved
+PASS: paired jitter and payload sequences are deterministic
+```
+
+### 현재 결정
+
+Issue #3의 generator 구현과 pilot 검증은 완료했다.
+
+- `pilot-v1`: 실패 원자료 보존
+- `capture-check-v1`: capture 종료 수정 회귀 검증
+- `pilot-v2`: 최종 성공 pilot
+
+Pilot 데이터는 detector 성능 평가에는 사용하지 않는다.
+
+아직 최종 200+ sample 본 실험은 실행하지 않는다. 다음 단계는 PCAP 기반 feature extractor의 정의와 구현이며, feature 정의를 고정한 뒤 본 실험 데이터를 생성한다.
