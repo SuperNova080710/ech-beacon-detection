@@ -95,20 +95,14 @@ LogNormal profile은 Box-Muller transform을 코드에 직접 구현하여 deriv
 
 ## 7. Raw data
 
-Pilot 기본 run tag:
+원자료 구조:
 
 ```text
-pilot-v1
-```
-
-원자료:
-
-```text
-data/raw/pilot-v1/
+data/raw/<RUN_TAG>/
   manifests/
   flow-metadata/
 
-artifacts/pcap/pilot-v1/
+artifacts/pcap/<RUN_TAG>/
   beacon/
   normal/
 ```
@@ -201,22 +195,18 @@ docker compose -f ./docker-compose.yml exec -T ech-client \
 Beacon 예:
 
 ```bash
-RUN_TAG=pilot-v1 bash scripts/run-traffic-trial.sh beacon 30 1
+RUN_TAG=my-run bash scripts/run-traffic-trial.sh beacon 30 1
 ```
 
 Normal 예:
 
 ```bash
-RUN_TAG=pilot-v1 bash scripts/run-traffic-trial.sh normal interactive-burst 1
+RUN_TAG=my-run bash scripts/run-traffic-trial.sh normal interactive-burst 1
 ```
 
 기존 raw data를 실수로 덮어쓰지 않도록 같은 `RUN_TAG + trial_id`가 이미 존재하면 실행을 중단한다.
 
 재실행이 필요하면 새 run tag를 사용한다.
-
-```bash
-RUN_TAG=pilot-v2 bash scripts/run-traffic-trial.sh beacon 30 1
-```
 
 ## 11. 8-trial pilot
 
@@ -227,10 +217,10 @@ Beacon: j00/j10/j30/j50/j70 × trial 1
 Normal: 3 profiles × trial 1
 ```
 
-실행:
+실행 예:
 
 ```bash
-RUN_TAG=pilot-v1 bash scripts/run-traffic-pilot.sh
+RUN_TAG=pilot-v2 bash scripts/run-traffic-pilot.sh
 ```
 
 스크립트는 다음 순서로 수행한다.
@@ -240,10 +230,11 @@ RUN_TAG=pilot-v1 bash scripts/run-traffic-pilot.sh
 3. 각 trial별 tcpdump 시작
 4. 30개 Native ECH HTTPS transactions 실행
 5. HTTP `Content-Length` 검증
-6. PCAP 종료 및 SHA-256 계산
-7. TShark로 ClientHello timestamp/SNI 파싱
-8. manifest에 network-observed IAT 추가
-9. 8개 trial 전체 조건 검증
+6. generator 종료 후 capture drain
+7. tcpdump 종료 확인 및 PCAP SHA-256 계산
+8. TShark로 ClientHello timestamp/SNI 파싱
+9. manifest에 network-observed IAT 추가
+10. 8개 trial 전체 조건 검증
 
 ## 12. Pilot PASS 기준
 
@@ -264,8 +255,69 @@ RUN_TAG=pilot-v1 bash scripts/run-traffic-pilot.sh
 
 Pilot은 generator 검증 데이터이며 최종 detector 성능 평가 데이터에 포함하지 않는다.
 
-## 13. 본 실험 실행 금지 시점
+## 13. Pilot 실행 이력
+
+### 13.1 `pilot-v1` — 실패 원자료 보존
+
+최초 8-trial pilot에서 각 generator는 30 transactions를 성공했고 Native ECH도 정상 동작했다.
+
+그러나 모든 trial PCAP에서 protocol-parsed ClientHello가 `29/30`만 기록되어 최종 verification이 실패했다.
+
+TShark의 retransmission 제외 조건을 제거해도 29개로 동일했으므로 parser/filter 문제가 아니라 실제 캡처 누락으로 판단했다.
+
+원인은 generator 종료 직후 tcpdump를 중단하면서 마지막 ClientHello가 kernel/libpcap buffer에서 PCAP으로 반영되기 전에 캡처가 종료되는 timing 문제로 판단했다.
+
+`pilot-v1` raw metadata와 PCAP은 삭제하지 않고 실패 원자료로 보존한다.
+
+### 13.2 수정
+
+- generator 종료 후 `CAPTURE_DRAIN_SECONDS` 대기 추가
+- `SIGINT` 후 tcpdump 종료 상태 확인
+- zombie 상태를 종료 완료로 판정하도록 보강
+
+### 13.3 `capture-check-v1` — 회귀 검증
+
+70% jitter beacon 단일 trial에서 다음을 확인했다.
+
+```text
+TRANSACTIONS=30
+CLIENTHELLO_COUNT=30
+MEAN_ABS_IAT_ERROR_S=0.002370569
+MAX_ABS_IAT_ERROR_S=0.009560842
+PASS: beacon-j70-t01
+```
+
+동일 PCAP을 TShark로 별도 재확인해 ClientHello 30개를 확인했다.
+
+### 13.4 `pilot-v2` — 최종 성공 pilot
+
+최종 8-trial pilot은 전부 PASS했다.
+
+| Trial | Transactions | ClientHello | Mean abs scheduled-vs-PCAP IAT error |
+|---|---:|---:|---:|
+| beacon-j00-t01 | 30 | 30 | 0.001442054 s |
+| beacon-j10-t01 | 30 | 30 | 0.001286469 s |
+| beacon-j30-t01 | 30 | 30 | 0.001379604 s |
+| beacon-j50-t01 | 30 | 30 | 0.002455262 s |
+| beacon-j70-t01 | 30 | 30 | 0.002432466 s |
+| normal-interactive-burst-t01 | 30 | 30 | 0.001929140 s |
+| normal-irregular-lognormal-t01 | 30 | 30 | 0.001476971 s |
+| normal-mixed-activity-t01 | 30 | 30 | 0.001600079 s |
+
+최종 verification:
+
+```text
+PASS: all 8 pilot trials satisfy the pre-defined generator conditions
+PASS: Native ECH SUCCESS and public outer SNI confirmed for every transaction
+PASS: 30 protocol-parsed ClientHello packets confirmed per trial
+PASS: scheduled and network-observed ClientHello IAT are both preserved
+PASS: paired jitter and payload sequences are deterministic
+```
+
+따라서 Issue #3의 traffic generator는 사전 정의 조건과 재현성 기준을 만족한다.
+
+## 14. 본 실험 실행 금지 시점
 
 Issue #3에서는 최종 200 samples를 생성하지 않는다.
 
-Pilot이 통과하고 generator 조건을 최종 동결한 뒤 후속 feature extractor 설계를 먼저 완료한다.
+Generator 조건과 pilot 검증은 완료했지만, 후속 feature extractor 설계를 먼저 완료한 뒤 본 실험 원자료를 생성한다.
