@@ -596,3 +596,200 @@ Issue #3의 generator 구현과 pilot 검증은 완료했다.
 Pilot 데이터는 detector 성능 평가에는 사용하지 않는다.
 
 아직 최종 200+ sample 본 실험은 실행하지 않는다. 다음 단계는 PCAP 기반 feature extractor의 정의와 구현이며, feature 정의를 고정한 뒤 본 실험 데이터를 생성한다.
+
+---
+
+## 2026-10-17 — PCAP Feature Extractor 구현 및 pilot 검증
+
+### 목적
+
+Issue #5에서 Native ECH PCAP을 입력으로 Timing-only / Multi-feature detector가 공통으로 사용할 trial-level feature extractor를 구현하고, detector 구현 전에 feature schema와 계산 방식을 동결한다.
+
+Pilot 데이터는 extractor 자체의 정확성·재현성 검증에만 사용하며 최종 detector 성능 평가에는 사용하지 않는다.
+
+### Feature 정의
+
+Feature Extractor는 generator의 scheduled interval이나 payload profile 값을 feature 계산에 직접 사용하지 않고 실제 PCAP metadata에서 계산한다.
+
+Flow 정의:
+
+```text
+protocol       = TCP
+server port    = 8443
+flow ID        = tcp.stream
+flow start     = 최초 client → server SYN (SYN=1, ACK=0)
+packet size    = IPv4 ip.len
+```
+
+
+Direction:
+
+```
+outbound = tcp.dstport == 8443
+inbound  = tcp.srcport == 8443
+```
+
+Burst threshold:
+
+```
+flow-start IAT <= 0.5 s : same burst
+flow-start IAT >  0.5 s : new burst
+```
+
+최종 feature schema는 다음 13개로 고정했다.
+
+```
+Timing
+- iat_mean_s
+- iat_std_s
+- iat_cv
+- iat_mad_s
+
+Packet size
+- packet_size_mean_bytes
+- packet_size_std_bytes
+- packet_size_cv
+
+Directionality
+- out_in_packet_ratio
+- byte_asymmetry
+- direction_change_ratio
+
+Burst
+- burst_count
+- burst_mean_size
+- burst_interval_cv
+```
+
+표준편차는 population standard deviation을 사용하고 MAD에는 scale factor를 적용하지 않는다.
+
+### 순수 계산 검증
+
+Feature 계산 unit test 6개를 실행했다.
+
+```
+Ran 6 tests in 0.001s
+OK
+```
+
+검증 대상:
+
+- constant IAT
+- population standard deviation
+- directionality 계산
+- 0.5 s inclusive burst boundary
+- denominator가 없는 경우 missing 처리
+- NaN/Infinity 검출
+
+### `pilot-v2` PCAP extraction 결과
+
+Issue #3의 최종 성공 pilot 8개를 대상으로 extractor를 실행했다.
+
+모든 trial:
+
+```
+flow_count       = 30
+flow_start_count = 30
+iat_count        = 29
+packet_count     = 510
+validation       = pass
+```
+
+최종 검증:
+
+```
+PASS: pilot-v2 contains exactly 8 feature rows and 8 label rows
+PASS: all 13 features are finite for every pilot trial
+PASS: feature and label trial IDs match one-to-one
+PASS: all pilot trials contain 30 TCP flows and 29 flow-start IAT values
+PASS: provenance validation and extraction timing are complete
+PASS: Feature Extractor pilot completed for RUN_TAG=pilot-v2
+```
+
+### Feature sanity check
+
+실제 추출 결과에서 다음을 확인했다.
+
+Beacon jitter 증가에 따라 timing variation이 증가했다.
+
+```
+jitter 0%  iat_cv ≈ 0.0015
+jitter 10% iat_cv ≈ 0.0591
+jitter 30% iat_cv ≈ 0.1734
+jitter 50% iat_cv ≈ 0.2816
+jitter 70% iat_cv ≈ 0.3867
+```
+
+Normal interactive-burst는:
+
+```
+burst_count     = 9
+burst_mean_size = 3.333...
+```
+
+로 나타나 generator의 burst 구조가 PCAP 기반 feature에 반영됨을 확인했다.
+
+동일 beacon trial 번호는 paired payload design을 사용하므로 packet-size/directionality 값이 jitter 수준 사이에서 거의 동일하게 나타나는 것도 설계와 일치했다.
+
+### Feature / label 분리
+
+Detector leakage를 방지하기 위해 processed output을 다음처럼 분리했다.
+
+```
+features.csv
+  trial_id + 13 features
+
+labels.csv
+  trial_id
+  traffic_class
+  label
+  jitter_pct
+  normal_profile
+```
+
+`traffic_class`, `jitter_pct`, `normal_profile`은 feature 입력에 포함하지 않는다.
+
+### 결정성 검증
+
+같은 raw PCAP과 manifest에 extractor를 다시 실행했다.
+
+재추출 전후 SHA-256:
+
+```
+features.csv
+a9199ee5096748b7c629a498bc7e3859ae510ff5e3a09a0c9151963588323857
+
+labels.csv
+da8f9febac90dbb94ab0a7c65a81650adeddf05d91443d68c82c2b5db1518dde
+```
+
+두 hash는 재추출 전후 동일했다.
+
+```
+PASS: feature output deterministic
+```
+
+`provenance.json`은 실행 시각과 처리 시간 측정값을 포함하므로 byte-identical 대상으로 사용하지 않는다.
+
+### Feature schema 동결
+
+Pilot 검증과 deterministic 재추출을 통과했으므로 detector 구현 전에 다음 조건을 동결한다.
+
+```
+extractor_schema_version   = 1
+feature_definition_version = 1.0.0
+server_port                = 8443
+expected_flow_count        = 30
+burst_gap_threshold_s      = 0.5
+feature_count              = 13
+```
+
+Detector 결과를 확인한 뒤 feature 정의나 burst threshold를 사후 조정하지 않는다.
+
+향후 구현 오류 때문에 변경이 반드시 필요하면 기존 정의를 덮어쓰지 않고 feature definition version을 올려 별도 기록한다.
+
+### 현재 결정
+
+Issue #5의 Feature Extractor 구현 및 pilot acceptance 검증은 완료했다.
+
+다음 단계에서는 동결된 feature schema `1.0.0`을 그대로 사용해 Timing-only detector와 Multi-feature detector의 설계를 진행한다.
