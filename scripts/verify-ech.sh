@@ -9,6 +9,7 @@ PROTECTED_NAME="${PROTECTED_NAME:-protected.ech.test}"
 PUBLIC_NAME="${PUBLIC_NAME:-public.ech.test}"
 PORT="${PORT:-8443}"
 ECH_FILE="/work/ech/${PROTECTED_NAME}.pem.ech"
+CURL_BIN="/opt/curl-ech/bin/curl"
 EVIDENCE_DIR="${EVIDENCE_DIR:-${ROOT_DIR}/artifacts/evidence}"
 
 mkdir -p "$EVIDENCE_DIR"
@@ -29,7 +30,7 @@ section "Container/version checks"
 "${COMPOSE[@]}" ps
 
 "${COMPOSE[@]}" exec -T ech-client openssl version | tee "$EVIDENCE_DIR/openssl-version.txt"
-"${COMPOSE[@]}" exec -T ech-client curl --version | tee "$EVIDENCE_DIR/curl-version.txt"
+"${COMPOSE[@]}" exec -T ech-client "$CURL_BIN" --version | tee "$EVIDENCE_DIR/curl-version.txt"
 "${COMPOSE[@]}" exec -T ech-nginx nginx -V 2>&1 | tee "$EVIDENCE_DIR/nginx-version.txt"
 
 if ! grep -q 'OpenSSL 4\.0' "$EVIDENCE_DIR/openssl-version.txt"; then
@@ -42,7 +43,7 @@ fi
 
 section "Plain TLS request (ECH OFF)"
 "${COMPOSE[@]}" exec -T ech-client sh -lc "
-  curl -skS --tlsv1.3 --ech false \
+  '${CURL_BIN}' -skS --tlsv1.3 --ech false \
     -D /tmp/plain.headers \
     -o /tmp/plain.body \
     https://${PROTECTED_NAME}:${PORT}/ech-status
@@ -70,7 +71,7 @@ section "Native ECH request (ECH ON)"
 
   test -n \"\$ECHCONFIG\"
 
-  curl -skS --tlsv1.3 \
+  '${CURL_BIN}' -skS --tlsv1.3 \
     --ech \"ecl:\${ECHCONFIG}\" \
     -D /tmp/ech.headers \
     -o /tmp/ech.body \
