@@ -71,7 +71,41 @@ Inter-arrival time 기반 periodicity를 중심으로 판단한다.
 - 50%
 - 70%
 
-Jitter는 기준 beacon interval `T`에 대해 각 요청 간격을 사전에 정의한 범위 내에서 난수화한다. 정확한 난수 공식과 seed 정책은 generator 구현 시 문서화하고 고정한다.
+기준 beacon interval은 다음으로 고정한다.
+
+```text
+T = 1.0 s
+```
+
+각 trial에서 먼저 정규화 jitter vector를 생성한다.
+
+```text
+z_i ~ Uniform(-1, 1)
+```
+
+jitter 비율을 `j`라고 할 때 scheduled inter-arrival time은 다음으로 정의한다.
+
+```text
+I_i(j) = T × (1 + j × z_i)
+```
+
+따라서 70% jitter에서 scheduled interval 범위는 다음과 같다.
+
+```text
+0.30 s <= I_i <= 1.70 s
+```
+
+동일한 beacon trial 번호는 모든 jitter 수준에서 같은 `z_i` sequence를 사용하고 jitter amplitude만 변경한다. 이 paired design으로 jitter 외 난수 sequence 차이를 최소화한다.
+
+Beacon timing seed 정책:
+
+```text
+seed_base = 20261017
+trial_seed = seed_base + trial_id
+trial_id = 1..20
+```
+
+실제 seed와 generated interval sequence는 raw manifest에 저장한다.
 
 ### 4.3 Traffic class
 
@@ -85,8 +119,9 @@ Jitter는 기준 beacon interval `T`에 대해 각 요청 간격을 사전에 �
 - 동일한 client/server Docker host
 - 동일한 ECH server 설정
 - 동일한 TLS/ECH 구현 버전
-- 동일한 base beacon interval
-- 동일한 요청 payload 또는 제한된 고정 payload set
+- 동일한 base beacon interval `1.0 s`
+- trial당 동일한 HTTPS transaction 수 `30`
+- 동일한 payload profile set과 class-independent 선택 확률
 - 동일한 packet capture 방식
 - 동일한 feature extraction 코드
 - 동일한 detector version
@@ -125,12 +160,35 @@ ECH-enabled Server
 
 ## 7. 데이터 생성
 
-### 7.1 Beacon traffic
+### 7.1 Sample / trial 정의
 
-- 기준 interval은 구현 전에 고정한다.
-- jitter 조건: 0/10/30/50/70%
-- 각 jitter 조건 최소 20 trial
-- 각 trial은 detector가 flow-level 특징을 계산할 수 있는 충분한 요청 수를 포함한다.
+한 sample은 단일 TCP 5-tuple 하나가 아니라, 동일 client에서 동일 protected ECH server로 발생한 **30개의 short-lived HTTPS flow sequence**로 정의한다.
+
+```text
+trial
+ ├─ HTTPS/ECH flow 01
+ ├─ HTTPS/ECH flow 02
+ ├─ ...
+ └─ HTTPS/ECH flow 30
+```
+
+각 HTTPS transaction은 새 연결을 사용한다. 이후 feature extractor는 trial 단위로 flow sequence를 집계한다.
+
+- Timing: flow/connection 시작 시각 간 IAT
+- Packet size: trial 내 packet-size 통계
+- Directionality: trial 내 client/server packet·byte 방향 통계
+- Burst: flow 시작 시각 기반 burst 통계
+
+각 trial은 정확히 30 transactions를 포함하므로 29개의 scheduled IAT를 가진다.
+
+### 7.2 Beacon traffic
+
+- base interval: `1.0 s`
+- jitter: `0/10/30/50/70%`
+- 각 jitter 조건: `20 trials`
+- 각 trial: `30 HTTPS transactions`
+- 동일 trial 번호는 모든 jitter 수준에서 같은 normalized jitter sequence 사용
+- 동일 trial 번호는 모든 jitter 수준에서 같은 payload profile sequence 사용
 
 최소 beacon sample 목표:
 
@@ -138,16 +196,65 @@ ECH-enabled Server
 5 jitter levels × 20 trials = 100 samples
 ```
 
-### 7.2 Normal traffic
+### 7.3 Normal traffic
 
-최소 100 sample을 목표로 한다.
+정상 traffic은 총 100 samples, sample당 30 HTTPS transactions로 고정한다.
 
-Normal traffic은 완전한 uniform random interval 하나만 사용하지 않는다. 실제 사용자의 burst/idle 특성을 단순화한 여러 정상 패턴을 사용하되, 패턴 종류와 분포는 데이터 생성 전에 고정하고 기록한다.
+단일 Uniform random interval 하나만 사용하지 않고 다음 세 profile을 사용한다.
 
-### 7.3 전체 목표
+#### Profile A — interactive-burst
 
-- 최소 약 200 flow samples
-- 실제 수행 과정에서 실패 sample이 발생하면 삭제하지 않고 실패 이유를 기록한다.
+- samples: `40`
+- burst size: integer Uniform `[2, 5]`
+- intra-burst IAT: Uniform `[0.10, 0.35] s`
+- inter-burst idle: Uniform `[2.0, 5.0] s`
+
+#### Profile B — irregular-lognormal
+
+- samples: `30`
+- IAT: LogNormal(`mu = ln(1.0)`, `sigma = 0.8`)
+- 최종 IAT를 `[0.15, 6.0] s` 범위로 clip
+
+#### Profile C — mixed-activity
+
+- samples: `30`
+- 각 IAT마다:
+  - probability `0.70`: Uniform `[0.20, 1.00] s`
+  - probability `0.30`: Uniform `[2.50, 6.00] s`
+
+Normal timing seed는 beacon과 별도 namespace를 사용하고 sample별 seed를 manifest에 저장한다.
+
+### 7.4 Request / payload profile
+
+Packet-size/directionality feature를 계산할 수 있도록 요청과 응답 크기에 제한된 변화를 둔다.
+
+그러나 payload 크기가 class label의 shortcut이 되지 않도록 Beacon과 Normal은 동일한 payload profile과 동일한 선택 확률을 사용한다.
+
+| Profile | Request query payload | Response body | Probability |
+|---|---:|---:|---:|
+| small | 32 B | 128 B | 0.50 |
+| medium | 128 B | 512 B | 0.35 |
+| large | 512 B | 2048 B | 0.15 |
+
+동일 beacon trial 번호는 jitter 수준이 달라도 동일한 payload profile sequence를 사용한다.
+
+### 7.5 전체 목표
+
+- Beacon: 100 samples
+- Normal: 100 samples
+- 전체 목표: 200 samples
+- 각 sample: 30 HTTPS transactions
+- 실패 sample이 발생하면 삭제하지 않고 실패 이유를 기록한다.
+
+본 실험 200 samples를 바로 생성하지 않는다. Generator 구현 후 먼저 8-trial pilot을 수행한다.
+
+```text
+Beacon: jitter별 1 trial = 5 trials
+Normal: profile별 1 trial = 3 trials
+Total = 8 trials
+```
+
+Pilot은 generator의 정확성과 재현성 검증용이며 detector 성능 평가 데이터로 사용하지 않는다.
 
 ## 8. Dataset split 및 threshold 원칙
 
@@ -158,7 +265,7 @@ Normal traffic은 완전한 uniform random interval 하나만 사용하지 않�
 - calibration/train: 파라미터 결정용
 - test: 최종 비교용
 
-동일한 trial 또는 사실상 동일한 flow가 양쪽 partition에 중복되지 않게 한다.
+동일한 trial 또는 사실상 동일한 flow sequence가 양쪽 partition에 중복되지 않게 한다.
 
 랜덤 분할을 사용할 경우 seed를 고정하고 기록한다.
 
@@ -170,7 +277,10 @@ Normal traffic은 완전한 uniform random interval 하나만 사용하지 않�
 data/raw/
   manifests/
   flow-metadata/
-  [pcap은 크기/민감정보를 확인한 뒤 제출 ZIP에 선택적으로 포함]
+
+artifacts/pcap/
+  beacon/
+  normal/
 
 data/processed/
   features.csv
@@ -181,7 +291,31 @@ results/
   figures/
 ```
 
-PCAP은 Git에 기본 업로드하지 않는다. 대신 trial manifest에는 PCAP filename/hash 또는 원자료 대응 정보를 남겨 raw → processed 변환을 추적할 수 있게 한다.
+PCAP은 Git에 기본 업로드하지 않는다. 대신 trial manifest에는 PCAP filename/hash와 원자료 대응 정보를 남겨 raw → processed 변환을 추적할 수 있게 한다.
+
+각 raw manifest는 최소 다음 값을 보존한다.
+
+```text
+trial_id
+traffic_class
+normal_profile
+jitter_pct
+base_interval_s
+request_count
+seed
+timing_sequence_s
+payload_profile_sequence
+scheduled_timestamp
+actual_start_timestamp
+actual_end_timestamp
+http_status
+ech_status
+outer_sni
+pcap_filename
+pcap_sha256
+success/failure
+failure_reason
+```
 
 ## 10. 주요 측정값
 
@@ -202,6 +336,8 @@ PCAP은 Git에 기본 업로드하지 않는다. 대신 trial manifest에는 PCA
 - detection latency
 - feature extraction time
 - detector processing time
+
+Detection latency의 정확한 산식은 detector 구현 전에 별도 Issue에서 고정한다. Generator 단계에서는 scheduled/actual connection timestamps만 보존한다.
 
 가능하면 각 지표를 jitter 조건별로 보고한다.
 
@@ -249,9 +385,10 @@ Jitter가 증가하는 조건에서 Multi-feature 방식이 Timing-only보다 Re
 
 - 실제 malware C2가 아닌 synthetic beacon
 - 제한된 ECH 구현 및 단일 실험 호스트
-- 제한된 beacon interval 및 request profile
+- base beacon interval `1.0 s`라는 제한된 시간 스케일
 - 제한된 정상 traffic 다양성
 - 실제 enterprise background traffic을 완전히 재현하지 못함
+- 30개의 short-lived HTTPS flow를 하나의 trial sample로 집계하는 실험적 정의
 - 실험용 multi-feature score/model이 특정 데이터 생성 방식에 과적합될 가능성
 
 ## 14. 설계 변경 규칙
