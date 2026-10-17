@@ -7,6 +7,7 @@ COMPOSE=(docker compose -f "${ROOT_DIR}/docker-compose.yml" --project-directory 
 
 RUN_TAG="${RUN_TAG:-pilot-v1}"
 PORT="${PORT:-8443}"
+CAPTURE_DRAIN_SECONDS="${CAPTURE_DRAIN_SECONDS:-1}"
 
 if [[ ! "$RUN_TAG" =~ ^[A-Za-z0-9._-]+$ ]]; then
   echo "FAIL: invalid RUN_TAG: $RUN_TAG" >&2
@@ -77,9 +78,22 @@ fi
 CAPTURE_STARTED=0
 stop_capture() {
   if [[ "$CAPTURE_STARTED" -eq 1 ]]; then
-    "${COMPOSE[@]}" exec -T packet-capture sh -lc \
-      "if [ -s '${PID_FILE}' ]; then kill -INT \"\$(cat '${PID_FILE}')\" 2>/dev/null || true; fi" || true
-    sleep 1
+    "${COMPOSE[@]}" exec -T packet-capture sh -lc "
+      if [ -s '${PID_FILE}' ]; then
+        pid=\$(cat '${PID_FILE}')
+        kill -INT \"\$pid\" 2>/dev/null || true
+        attempts=0
+        while kill -0 \"\$pid\" 2>/dev/null; do
+          attempts=\$((attempts + 1))
+          if [ \"\$attempts\" -ge 50 ]; then
+            echo 'WARN: tcpdump did not exit after SIGINT; sending TERM' >&2
+            kill -TERM \"\$pid\" 2>/dev/null || true
+            break
+          fi
+          sleep 0.1
+        done
+      fi
+    " || true
     CAPTURE_STARTED=0
   fi
 }
@@ -99,6 +113,8 @@ set +e
 GENERATOR_STATUS=$?
 set -e
 
+# Give libpcap/tcpdump time to drain the final packets from the kernel capture buffer.
+sleep "$CAPTURE_DRAIN_SECONDS"
 stop_capture
 trap - EXIT INT TERM
 
