@@ -324,6 +324,8 @@ bash scripts/verify-pcap.sh
 
 세 스크립트가 모두 PASS해야 Issue #1의 재현성 완료 조건을 충족한 것으로 기록한다.
 
+2026-10-17 실제 재기동 검증에서 세 스크립트가 모두 동일하게 PASS했다.
+
 ## 11. 완료 판정
 
 Issue #1은 다음 결과가 실제 실행으로 확인되어야 완료 처리한다.
@@ -339,7 +341,9 @@ Issue #1은 다음 결과가 실제 실행으로 확인되어야 완료 처리�
 - [x] TShark에서 plain ClientHello SNI = `protected.ech.test`
 - [x] TShark에서 ECH ClientHello outer SNI = `public.ech.test`
 - [x] TShark에서 ECH ClientHello에 protected SNI 비노출
-- [ ] testbed 재기동 후 동일 결과 재현
+- [x] testbed 재기동 후 동일 결과 재현
+
+따라서 Issue #1의 기술적 완료 조건은 충족했다.
 
 실제 검증 결과는 `docs/research-log.md`에 사실 그대로 기록한다. 실패한 결과도 삭제하지 않는다.
 
