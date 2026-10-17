@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
+COMPOSE=(docker compose -f "${ROOT_DIR}/docker-compose.yml" --project-directory "${ROOT_DIR}")
+
 PROTECTED_NAME="${PROTECTED_NAME:-protected.ech.test}"
 PUBLIC_NAME="${PUBLIC_NAME:-public.ech.test}"
 PORT="${PORT:-8443}"
 ECH_FILE="/work/ech/${PROTECTED_NAME}.pem.ech"
-EVIDENCE_DIR="${EVIDENCE_DIR:-artifacts/evidence}"
+EVIDENCE_DIR="${EVIDENCE_DIR:-${ROOT_DIR}/artifacts/evidence}"
 
 mkdir -p "$EVIDENCE_DIR"
 
@@ -22,11 +26,11 @@ section() {
 }
 
 section "Container/version checks"
-docker compose ps
+"${COMPOSE[@]}" ps
 
-docker compose exec -T ech-client openssl version | tee "$EVIDENCE_DIR/openssl-version.txt"
-docker compose exec -T ech-client curl --version | tee "$EVIDENCE_DIR/curl-version.txt"
-docker compose exec -T ech-nginx nginx -V 2>&1 | tee "$EVIDENCE_DIR/nginx-version.txt"
+"${COMPOSE[@]}" exec -T ech-client openssl version | tee "$EVIDENCE_DIR/openssl-version.txt"
+"${COMPOSE[@]}" exec -T ech-client curl --version | tee "$EVIDENCE_DIR/curl-version.txt"
+"${COMPOSE[@]}" exec -T ech-nginx nginx -V 2>&1 | tee "$EVIDENCE_DIR/nginx-version.txt"
 
 if ! grep -q 'OpenSSL 4\.0' "$EVIDENCE_DIR/openssl-version.txt"; then
   fail "ECH client is not using OpenSSL 4.0.x"
@@ -37,7 +41,7 @@ if ! grep -qi 'ECH' "$EVIDENCE_DIR/curl-version.txt"; then
 fi
 
 section "Plain TLS request (ECH OFF)"
-docker compose exec -T ech-client sh -lc "
+"${COMPOSE[@]}" exec -T ech-client sh -lc "
   curl -skS --tlsv1.3 --ech false \
     -D /tmp/plain.headers \
     -o /tmp/plain.body \
@@ -55,7 +59,7 @@ if ! grep -q '"server":"protected"' "$EVIDENCE_DIR/plain-request.txt"; then
 fi
 
 section "Native ECH request (ECH ON)"
-docker compose exec -T ech-client sh -lc "
+"${COMPOSE[@]}" exec -T ech-client sh -lc "
   set -eu
   ECHCONFIG=\$(awk '
     /^-----BEGIN ECHCONFIG-----/ {inside=1; next}
@@ -88,7 +92,7 @@ if ! grep -q '"server":"protected"' "$EVIDENCE_DIR/ech-request.txt"; then
 fi
 
 section "Recent NGINX ECH evidence"
-docker compose logs --no-color --tail=80 ech-nginx \
+"${COMPOSE[@]}" logs --no-color --tail=80 ech-nginx \
   | tee "$EVIDENCE_DIR/nginx-ech-log.txt"
 
 if ! grep -q 'ech_status="SUCCESS"' "$EVIDENCE_DIR/nginx-ech-log.txt"; then
