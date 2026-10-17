@@ -84,6 +84,15 @@ stop_capture() {
         kill -INT \"\$pid\" 2>/dev/null || true
         attempts=0
         while kill -0 \"\$pid\" 2>/dev/null; do
+          if [ -r \"/proc/\$pid/stat\" ]; then
+            set -- \$(cat \"/proc/\$pid/stat\")
+            state=\$3
+            if [ \"\$state\" = 'Z' ]; then
+              break
+            fi
+          else
+            break
+          fi
           attempts=\$((attempts + 1))
           if [ \"\$attempts\" -ge 50 ]; then
             echo 'WARN: tcpdump did not exit after SIGINT; sending TERM' >&2
@@ -92,6 +101,7 @@ stop_capture() {
           fi
           sleep 0.1
         done
+        rm -f '${PID_FILE}'
       fi
     " || true
     CAPTURE_STARTED=0
