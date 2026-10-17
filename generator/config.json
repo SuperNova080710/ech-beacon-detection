@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "protected_name": "protected.ech.test",
+  "public_name": "public.ech.test",
+  "port": 8443,
+  "curl_bin": "/opt/curl-ech/bin/curl",
+  "ech_file": "/work/ech/protected.ech.test.pem.ech",
+  "request_count": 30,
+  "beacon": {
+    "base_interval_s": 1.0,
+    "jitter_pct": [0, 10, 30, 50, 70],
+    "trials_per_level": 20,
+    "timing_seed_base": 20261017,
+    "payload_seed_base": 20263017
+  },
+  "normal": {
+    "timing_seed_base": 20262017,
+    "payload_seed_base": 20264017,
+    "profiles": {
+      "interactive-burst": {
+        "samples": 40,
+        "seed_offset": 0,
+        "burst_size_min": 2,
+        "burst_size_max": 5,
+        "intra_min_s": 0.10,
+        "intra_max_s": 0.35,
+        "idle_min_s": 2.0,
+        "idle_max_s": 5.0
+      },
+      "irregular-lognormal": {
+        "samples": 30,
+        "seed_offset": 100,
+        "mu": 0.0,
+        "sigma": 0.8,
+        "clip_min_s": 0.15,
+        "clip_max_s": 6.0
+      },
+      "mixed-activity": {
+        "samples": 30,
+        "seed_offset": 200,
+        "short_probability": 0.70,
+        "short_min_s": 0.20,
+        "short_max_s": 1.00,
+        "idle_min_s": 2.50,
+        "idle_max_s": 6.00
+      }
+    }
+  },
+  "payload_profiles": {
+    "small": {
+      "probability": 0.50,
+      "query_bytes": 32,
+      "response_bytes": 128
+    },
+    "medium": {
+      "probability": 0.35,
+      "query_bytes": 128,
+      "response_bytes": 512
+    },
+    "large": {
+      "probability": 0.15,
+      "query_bytes": 512,
+      "response_bytes": 2048
+    }
+  }
+}

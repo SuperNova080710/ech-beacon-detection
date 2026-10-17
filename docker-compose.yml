@@ -50,6 +50,7 @@ services:
     volumes:
       - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./docker/conf.d:/etc/nginx/conf.d:ro
+      - ./generator/payloads:/srv/traffic:ro
       - tls-certs:/etc/nginx/certs:ro
       - ech-config:/etc/nginx/ech:ro
     networks:
@@ -78,6 +79,8 @@ services:
     command: ["sleep", "infinity"]
     volumes:
       - ech-config:/work/ech:ro
+      - ./generator:/workspace/generator:ro
+      - ./data:/data
       - ./artifacts/evidence:/evidence
     networks:
       - ech-lab
