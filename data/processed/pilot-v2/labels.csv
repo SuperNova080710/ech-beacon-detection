@@ -1,0 +1,9 @@
+trial_id,traffic_class,label,jitter_pct,normal_profile
+beacon-j00-t01,beacon,1,0,
+beacon-j10-t01,beacon,1,10,
+beacon-j30-t01,beacon,1,30,
+beacon-j50-t01,beacon,1,50,
+beacon-j70-t01,beacon,1,70,
+normal-interactive-burst-t01,normal,0,,interactive-burst
+normal-irregular-lognormal-t01,normal,0,,irregular-lognormal
+normal-mixed-activity-t01,normal,0,,mixed-activity

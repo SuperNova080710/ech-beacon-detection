@@ -79,6 +79,7 @@ services:
     volumes:
       - ech-config:/work/ech:ro
       - ./generator:/workspace/generator:ro
+      - ./extractor:/workspace/extractor:ro
       - ./data:/data
       - ./artifacts/evidence:/evidence
       - ./artifacts/pcap:/pcap:ro
