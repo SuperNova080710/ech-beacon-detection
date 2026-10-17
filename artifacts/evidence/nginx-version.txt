@@ -1,0 +1,5 @@
+nginx version: nginx/1.30.6
+built by gcc 12.2.0 (Debian 12.2.0-14+deb12u1) 
+built with OpenSSL 4.0.1 9 Jun 2026
+TLS SNI support enabled
+configure arguments: --prefix=/usr/local/nginx --sbin-path=/usr/local/sbin/nginx --conf-path=/etc/nginx/nginx.conf --pid-path=/tmp/nginx.pid --lock-path=/tmp/nginx.lock --http-log-path=/dev/stdout --error-log-path=/dev/stderr --with-http_ssl_module --with-http_v2_module --with-threads --with-cc-opt='-O2 -fstack-protector-strong -I/opt/openssl/include' --with-ld-opt='-L/opt/openssl/lib64 -L/opt/openssl/lib -Wl,-rpath,/opt/openssl/lib64 -Wl,-rpath,/opt/openssl/lib'

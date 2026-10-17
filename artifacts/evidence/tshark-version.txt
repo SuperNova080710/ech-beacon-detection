@@ -1,0 +1,3 @@
+TShark (Wireshark) 4.0.17 (Git v4.0.17 packaged as 4.0.17-0+deb12u3).
+
+Copyright 1998-2024 Gerald Combs <gerald@wireshark.org> and contributors.

@@ -1,0 +1,108 @@
+name: ech-beacon-lab
+
+x-tools-image: &tools-image
+  image: ech-beacon-tools:openssl-4.0.1-curl-8.20.0
+
+services:
+  ech-bootstrap:
+    <<: *tools-image
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: ech-tools
+      args:
+        OPENSSL_VERSION: "4.0.1"
+        CURL_VERSION: "8.20.0"
+    environment:
+      PROTECTED_NAME: "protected.ech.test"
+      PUBLIC_NAME: "public.ech.test"
+      FORCE_REGENERATE: "${FORCE_REGENERATE:-0}"
+    command: ["/bin/bash", "/workspace/scripts/init-ech-material.sh"]
+    volumes:
+      - ./scripts:/workspace/scripts:ro
+      - tls-certs:/work/certs
+      - ech-config:/work/ech
+    restart: "no"
+
+  ech-nginx:
+    image: ech-beacon-nginx:nginx-1.30.6-openssl-4.0.1
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: ech-nginx
+      args:
+        NGINX_VERSION: "1.30.6"
+        OPENSSL_VERSION: "4.0.1"
+    depends_on:
+      ech-bootstrap:
+        condition: service_completed_successfully
+    ports:
+      - "127.0.0.1:${ECH_HOST_PORT:-9444}:8443"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,mode=1777,uid=101,gid=101
+      - /var/cache/nginx:rw,noexec,nosuid,nodev,mode=0755,uid=101,gid=101
+      - /run:rw,noexec,nosuid,nodev,mode=0755,uid=101,gid=101
+    security_opt:
+      - no-new-privileges=true
+    cap_drop:
+      - ALL
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/conf.d:/etc/nginx/conf.d:ro
+      - tls-certs:/etc/nginx/certs:ro
+      - ech-config:/etc/nginx/ech:ro
+    networks:
+      ech-lab:
+        aliases:
+          - protected.ech.test
+          - public.ech.test
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          /usr/local/sbin/nginx -t >/dev/null 2>&1 &&
+          test -s /tmp/nginx.pid &&
+          kill -0 "$$(cat /tmp/nginx.pid)" 2>/dev/null
+      interval: 5s
+      timeout: 5s
+      start_period: 10s
+      retries: 12
+    restart: unless-stopped
+
+  ech-client:
+    <<: *tools-image
+    depends_on:
+      ech-nginx:
+        condition: service_healthy
+    command: ["sleep", "infinity"]
+    volumes:
+      - ech-config:/work/ech:ro
+      - ./artifacts/evidence:/evidence
+    networks:
+      - ech-lab
+    restart: unless-stopped
+
+  packet-capture:
+    <<: *tools-image
+    depends_on:
+      ech-nginx:
+        condition: service_healthy
+    command: ["sleep", "infinity"]
+    network_mode: "service:ech-nginx"
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    security_opt:
+      - no-new-privileges=true
+    volumes:
+      - ./artifacts/pcap:/captures
+    restart: unless-stopped
+
+volumes:
+  tls-certs:
+  ech-config:
+
+networks:
+  ech-lab:
+    driver: bridge

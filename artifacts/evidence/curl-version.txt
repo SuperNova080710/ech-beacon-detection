@@ -1,0 +1,4 @@
+curl 8.20.0 (x86_64-pc-linux-gnu) libcurl/8.20.0 OpenSSL/4.0.1
+Release-Date: 2026-04-29
+Protocols: dict file ftp ftps gopher gophers http https imap imaps ipfs ipns mqtt mqtts pop3 pop3s rtsp smtp smtps telnet tftp ws wss
+Features: alt-svc AsynchDNS ECH HSTS HTTPS-proxy HTTPSRR IPv6 Largefile SSL threadsafe TLS-SRP UnixSockets

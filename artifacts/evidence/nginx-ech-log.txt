@@ -1,0 +1,4 @@
+ech-nginx-1  | 192.168.192.3 - [17/Oct/2026:05:56:19 +0000] "GET /ech-status HTTP/1.1" 200 sni="protected.ech.test" ech_status="NOT_TRIED" ech_outer_sni="-"
+ech-nginx-1  | 2026/10/17 05:56:19 [info] 8#8: *1 client 192.168.192.3 closed keepalive connection
+ech-nginx-1  | 192.168.192.3 - [17/Oct/2026:05:56:20 +0000] "GET /ech-status HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 2026/10/17 05:56:20 [info] 9#9: *2 client 192.168.192.3 closed keepalive connection
