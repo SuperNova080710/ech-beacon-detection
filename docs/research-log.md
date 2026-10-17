@@ -354,54 +354,94 @@ GitHub Actions = 필요할 때 실행하는 최종 재현성 검증
 
 Workflow는 자동 push/pull_request trigger를 제거하고 `workflow_dispatch` 수동 실행 전용으로 변경했다.
 
-### 최종 재기동 재현성 검증
+### 재기동 재현성 검증
 
-기능 검증이 끝난 뒤 testbed를 `docker compose down`으로 종료하고 동일 Compose 구성으로 다시 기동했다.
+Testbed를 종료한 뒤 다시 기동하고 다음 세 검증을 반복했다.
 
-재기동 후 다음 세 검증을 다시 수행했다.
+- `bash scripts/verify-ech.sh`
+- `bash scripts/capture-ech.sh`
+- `bash scripts/verify-pcap.sh`
+
+세 검증 모두 최초 실행과 동일하게 PASS했다.
+
+따라서 Issue #1의 Native ECH testbed는 로컬 Docker 환경에서 재기동 후에도 동일 결과를 재현할 수 있음을 확인했다.
+
+---
+
+## 2026-10-17 — Traffic Generator 사전 조건 고정
+
+### 목적
+
+Issue #3의 generator를 구현하기 전에 결과를 보고 바꾸지 않을 timing, seed, payload, sample 정의를 먼저 고정한다.
+
+### Sample 정의
+
+한 sample은 단일 TCP 5-tuple 하나가 아니라 동일 client에서 동일 protected ECH server로 발생한 **30개의 short-lived HTTPS flow sequence**로 정의한다.
+
+각 transaction은 별도의 curl 프로세스로 새 TLS/ECH 연결을 사용한다.
+
+### Beacon 조건
+
+- base interval: `1.0 s`
+- jitter: `0/10/30/50/70%`
+- jitter별 `20 trials`
+- trial당 `30 transactions`
+- scheduled IAT: `29개`
+
+Jitter는 다음으로 고정한다.
 
 ```text
-verify-ech.sh
-capture-ech.sh
-verify-pcap.sh
+z_i ~ Uniform(-1, 1)
+I_i(j) = 1.0 × (1 + j × z_i)
 ```
 
-재검증 결과:
+동일 trial 번호는 jitter level이 달라도 같은 normalized `z_i` sequence를 사용한다. 따라서 jitter amplitude만 달라지는 paired comparison을 수행할 수 있다.
+
+Beacon timing seed는 다음으로 고정한다.
 
 ```text
-PASS: ECH OFF -> NOT_TRIED
-PASS: ECH ON  -> SUCCESS
-PASS: outer SNI -> public.ech.test
+trial_seed = 20261017 + trial_id
 ```
+
+### Normal 조건
+
+총 100 samples를 다음 세 profile로 나눈다.
+
+- interactive-burst: 40
+- irregular-lognormal: 30
+- mixed-activity: 30
+
+각 sample은 30 transactions를 포함한다.
+
+Normal timing seed는 beacon과 별도 namespace를 사용한다.
 
 ```text
-PASS: ECH OFF capture contains protected SNI: protected.ech.test
-PASS: ECH ON capture does not contain protected SNI as plaintext
-PASS: ECH ON capture contains public outer SNI: public.ech.test
+normal timing seed base = 20262017
 ```
 
-```text
-PASS: plain.pcap -> SNI protected.ech.test
-PASS: ech.pcap   -> outer SNI public.ech.test
-PASS: ech.pcap   -> protected SNI not visible in parsed ClientHello
-```
+### Payload 조건
 
-재기동 후에도 최초 검증과 동일한 결과가 유지되었다.
+Beacon과 Normal은 class label에 payload 크기가 직접 대응하지 않도록 동일한 profile과 선택 확률을 사용한다.
 
-### 최종 판정
+- small: query 32 B / response 128 B / probability 0.50
+- medium: query 128 B / response 512 B / probability 0.35
+- large: query 512 B / response 2048 B / probability 0.15
 
-Issue #1에서 정의한 기술적 완료 조건을 모두 충족했다.
+Beacon payload seed base는 `20263017`, Normal payload seed base는 `20264017`로 분리한다.
 
-- Docker image build 성공
-- ECH bootstrap 성공
-- NGINX healthy
-- ECH OFF `NOT_TRIED`
-- ECH ON `SUCCESS`
-- outer SNI `public.ech.test`
-- ECH OFF PCAP protected SNI 노출
-- ECH ON PCAP protected SNI 비노출
-- ECH ON PCAP public outer SNI 노출
-- TShark protocol-aware ClientHello SNI 검증
-- testbed 종료 후 재기동 및 동일 결과 재현
+동일 beacon trial 번호는 모든 jitter level에서 같은 payload profile sequence를 사용한다.
 
-따라서 Native ECH testbed 구축 및 재현성 검증 단계는 완료로 판정한다. 다음 단계부터 Normal/Beacon traffic generator 설계 및 구현으로 진행할 수 있다.
+### Pilot 원칙
+
+본 실험 200 samples를 바로 생성하지 않는다.
+
+먼저 다음 8 trials만 실행하여 generator 정확성과 재현성을 검증한다.
+
+- Beacon: jitter별 trial 1 → 5 trials
+- Normal: 각 profile trial 1 → 3 trials
+
+Pilot 결과는 detector 성능 평가 데이터로 사용하지 않는다.
+
+### 현재 상태
+
+이 기록 시점에는 아직 pilot 결과를 생성하지 않았다. 다음 단계는 generator 코드와 trial capture orchestration을 구현한 뒤 정적 테스트를 통과시키는 것이다.
