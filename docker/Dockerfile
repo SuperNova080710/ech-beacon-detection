@@ -155,9 +155,10 @@ ENV LD_LIBRARY_PATH="/opt/openssl/lib64:/opt/openssl/lib"
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         ca-certificates \
-        python3-minimal \
+        python3 \
         tcpdump \
         tshark \
+    && python3 -c 'import json, random, statistics, unittest' \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=openssl-build /opt/openssl /opt/openssl
