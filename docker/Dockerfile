@@ -148,12 +148,13 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         ca-certificates \
         tcpdump \
+        tshark \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=openssl-build /opt/openssl /opt/openssl
 COPY --from=curl-build /opt/curl-ech /opt/curl-ech
 
 LABEL org.opencontainers.image.title="ech-beacon-tools"
-LABEL org.opencontainers.image.description="OpenSSL ${OPENSSL_VERSION} and curl ${CURL_VERSION} with ECH support"
+LABEL org.opencontainers.image.description="OpenSSL ${OPENSSL_VERSION}, curl ${CURL_VERSION} with ECH support, and packet-analysis tools"
 
 CMD ["sleep", "infinity"]
