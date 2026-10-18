@@ -901,3 +901,49 @@ git status --short: 출력 없음
 위 43개 PASS는 **synthetic fixture 기반 코드 정합성 검증**만 의미한다. 실제 Native ECH 본 실험 200 trials PCAP/processed feature는 아직 생성되지 않았고, 실제 모델 가중치·threshold, held-out Precision/Recall/F1/FPR/FNR, jitter별 결과와 runtime overhead는 **미측정**이다.
 
 Multi-feature가 Timing-only보다 높은 jitter에서 좋은 성능을 얻는지는 확인되지 않았다. 실제 실험 결과가 가설과 다르더라도 저장·보고하며, 본 실험 test 결과를 본 뒤 학습 hyperparameter, feature set, threshold 또는 partition을 사후 변경하지 않는다.
+
+---
+
+## 2026-10-18 — 본 실험 200개 Native ECH trial 수집 자동화 사전 준비
+
+### 상태
+
+Timing-only Baseline (#7) 및 Multi-feature Detector (#9)의 구현과 synthetic 테스트는 완료했으나, **실제 본 실험 PCAP 200개는 아직 수집하지 않았다**. 이 시점에는 본 실험 성능·가중치·threshold 및 jitter별 F1/Recall/FPR/FNR 수치가 없다.
+
+### 고정한 실행 계획
+
+- Generator 기존 config를 그대로 사용해 Beacon 5 jitter × 20 trial = 100개, Normal interactive 40 + lognormal 30 + mixed 30 = 100개
+- 1-based 실행 순번 `1..200`을 사전 정의: Beacon j00/j10/j30/j50/j70 각 20개, 이후 Normal profile별 40/30/30개
+- Trial마다 30개 HTTPS Native ECH 요청, 30 ClientHello, 29 flow-start IAT 검증
+- Paired jitter 난수열 및 payload profile sequence, class-independent payload 설정 유지
+- Raw PCAP hash와 manifest, flow-metadata CSV, ECH SUCCESS, outer SNI를 재검증
+- 실험 run-tag는 `main-v1`과 같은 새 이름만 허용, pilot/diagnostic run-tag 금지
+
+### 실패·중단 보존 원칙
+
+- 실제 캡처는 실행기가 `EXECUTE=1`을 받았을 때에만 동작하며 기본은 dry-run
+- 실행 도중 기존 manifest/PCAP를 삭제하거나 덮어쓰지 않음
+- Trial 시작 마커를 먼저 생성하여 파일 생성 전 중단된 경우도 재시도로 덮어쓰지 않음
+- 이미 완성된 trial은 PCAP 원자료와 manifest를 재검증한 뒤에만 skip
+- Generator 소스 및 ECH material SHA-256을 run environment에 저장하여 동일 run-tag에 변경된 실험 환경을 혼용하지 않음
+- 한 번에 한 trial만 캡처하고 중단/실패 증거를 보존
+
+### 코드/문서 상태
+
+- `generator/experiment_plan.py`: 정확한 200개 trial catalog 및 batch/dry-run
+- `scripts/run-main-experiment.sh`: `EXECUTE=1` 안전장치, checkpoint, serialized capture, restart verification
+- `generator/verify_main.py`: 실제 raw PCAP ClientHello 재파싱 및 generator 조건 검증
+- `extractor/verify_main_features.py`: processed 200행, schema 및 PCAP provenance 검증
+- `scripts/extract-main-features.sh`: raw 200개 전체 PASS 후 extractor 실행
+- `generator/test_main_experiment.py`, `extractor/test_main_features.py`: Docker 트래픽 없는 synthetic/offline 검증
+- `docs/main-experiment.md`: 실행·보존·후속 평가 절차
+
+### 다음 게이트
+
+1. 사용자 로컬 Linux에서 신규 unit/offline 테스트와 dry-run이 PASS인지 확인
+2. Docker Native ECH 환경 precheck
+3. 승인된 작은 batch로 실제 수집 시작, 이후 200개 완료 여부와 원자료 검증 확인
+4. 검증된 200개에 대해 extractor 1.0.0 실행 후 feature/label/provenance 검사
+5. 후속 분석에서 기존 90/110 calibration/test 분할 및 두 detector를 변경 없이 적용
+
+본 기록은 **실제 실험을 실행했다고 주장하지 않는다**. 실제 실행에서 실패가 발생하면 실패 증거를 삭제하지 않고 별도 항목으로 남긴다.
