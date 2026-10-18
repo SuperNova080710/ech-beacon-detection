@@ -126,3 +126,38 @@ results/multi-feature/<run-tag>/
 2. synthetic 200개 fixture에서 `train → predict`, label isolation, 40 Normal threshold, fingerprint, deterministic 결과 검증
 3. 실제 200개 Native ECH 본 실험은 별도 Issue에서 수집
 4. 두 detector에 동일한 110 held-out sample을 적용하고 jitter별 지표 평가
+
+## CLI 구현 / 재현 절차
+
+동일한 test partition을 사용하는 Timing-only Baseline CLI의 split 결과를 그대로 재사용한다. 아래 절차는 **실제 본 실험 200개를 생성한 다음에만** 실행한다. 현재 `pilot-v2`는 학습/threshold/평가에 사용하지 않는다.
+
+```bash
+python3 detector/timing_only_cli.py split \
+  --processed-dir data/processed/<final-run-tag> \
+  --out-dir results/shared-splits/<final-run-tag>
+
+python3 detector/multi_feature_cli.py train \
+  --split-dir results/shared-splits/<final-run-tag> \
+  --output results/multi-feature/<final-run-tag>/calibration.json
+
+python3 detector/multi_feature_cli.py predict \
+  --split-dir results/shared-splits/<final-run-tag> \
+  --calibration results/multi-feature/<final-run-tag>/calibration.json \
+  --output results/multi-feature/<final-run-tag>/predictions.csv
+```
+
+동일 split 경로에서 Timing-only detector도 별도로 실행한다. 두 detector에 서로 다른 test set을 사용하지 않는다.
+
+### Synthetic-only 단위/통합 테스트
+
+```bash
+python3 detector/test_multi_feature.py
+```
+
+이 테스트는 임시 synthetic 200-trial fixture만 사용한다. Model weights/threshold reproducibility, calibration-only data flow, test-label-independent prediction, checksum/fingerprint tampering, held-out prediction count, output overwrite, 0-variance scaling을 검증한다.
+
+**테스트 PASS 여부는 로컬에서 실행 후 연구 로그에 실제 출력과 함께 기록한다.** 테스트 코드 작성 또는 원격 브랜치 커밋만으로 PASS라고 기록하지 않는다.
+
+## 런타임 측정 범위
+
+모델 학습 및 calibration 소요시간 `training_and_calibration_ms`는 calibration JSON에 포함한다. `predict` 명령은 110개 예측의 총 처리 시간 `prediction_processing_ms`를 반환하지만, 현재 CSV에는 개별 예측 시간은 넣지 않는다. Feature Extractor와 Detector processing cost의 측정 조건 비교/최종 지표 정의는 이후 평가 Issue에서 명시한다.
