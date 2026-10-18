@@ -793,3 +793,55 @@ Detector 결과를 확인한 뒤 feature 정의나 burst threshold를 사후 조
 Issue #5의 Feature Extractor 구현 및 pilot acceptance 검증은 완료했다.
 
 다음 단계에서는 동결된 feature schema `1.0.0`을 그대로 사용해 Timing-only detector와 Multi-feature detector의 설계를 진행한다.
+
+---
+
+## 2026-10-18 — Timing-only Baseline Detector 사전 정의 및 검증
+
+### 목적과 사전 고정 사항
+
+Issue #7에서 Feature Extractor schema `1.0.0`의 `iat_cv` 하나를 사용하는 Timing-only baseline을 구현했다. detector 성능 데이터를 확인하기 전에 점수·판정 연산자·calibration/test split·threshold 선정 방식을 고정했다.
+
+- `score = iat_cv`
+- `CV < threshold`이면 Beacon(1), 같거나 크면 Normal(0)
+- Beacon trial 번호 `1..10` × jitter 5개 = calibration 50개, `11..20` = held-out test 50개
+- Normal calibration: interactive-burst 16개, irregular-lognormal 12개, mixed-activity 12개 = 40개
+- Normal test: 24+18+18 = 60개; held-out 전체 110개
+- paired jitter 실험에서 동일 Beacon trial 번호는 같은 partition
+- threshold는 Normal calibration CV 40개의 세 번째 최솟값 `x_(3)`으로 고정
+- strict `<`이므로 ties를 포함해 empirical **calibration** FPR이 최대 2/40=5%; **test** FPR 보장은 아님
+- `pilot-v1`, `capture-check-v1`, `pilot-v2`는 threshold calibration과 평가에서 제외
+
+### 구현 내용
+
+- `detector/timing_only.py`: CV 입력 검사, strict boundary, normal-only calibration, 200개 trial catalog와 fixed split
+- `detector/timing_only_cli.py`: `split → calibrate → predict` CLI, feature/label 파일 분리, extractor provenance/version 확인, hash 및 calibration fingerprint 검사, overwrite 거부
+- `detector/config.json`: detector/feature schema version과 calibration 규칙
+- `detector/test_timing_only.py`: 순수 unit tests
+- `detector/test_timing_only_cli.py`: 임시 synthetic 200개 sample을 이용한 통합 검증
+- `docs/timing-only-baseline.md`: 사전 등록한 수식/분할/실행 절차
+
+### 로컬 검증 결과
+
+2026-10-18 사용자 로컬 Ubuntu/Python 환경에서 다음을 실행했다.
+
+```text
+python3 detector/test_timing_only.py
+Ran 10 tests in 0.002s
+OK
+
+python3 detector/test_timing_only_cli.py
+Ran 13 tests in 0.233s
+OK
+
+git diff --check -> 출력 없음
+git status --short -> 출력 없음
+```
+
+검증 범위에는 threshold 3번째 순서통계량 및 ties, CV 유한값, paired jitter split, 90/110 catalog, pilot 제외, label-free inference, checksum/threshold 변조 거부, 버전 불일치, 중복/누락 trial, 재현 가능한 예측, output overwrite 거부가 포함된다.
+
+### 평가 및 미완료 사항 구분
+
+**23개 테스트는 synthetic fixture 기반 구현 검증이지, 실제 탐지 품질 검증이 아니다.** 실제 calibration threshold는 계산하지 않았고 Native ECH 본 실험 200개 sample의 수집/추출도 아직 수행하지 않았다. 실제 test Precision/Recall/F1/FPR/FNR, jitter별 탐지율, timing overhead의 본 실험 분포는 **미측정**이다.
+
+이후 Multi-feature Detector 설계에서도 동일한 test partition을 사용하며, 결과를 확인한 후 threshold/feature definition을 소급 수정하지 않는다. 규칙 변경이 필요한 오류가 발생하면 별도 버전 및 research log에 기록한다.
