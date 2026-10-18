@@ -25,7 +25,7 @@ Trial당 새로운 HTTPS/TLS 1.3 + ECH 연결 30회, flow-start IAT 29개. Gener
 - 캡처 시작 직전에 `data/raw/<run-tag>/execution-state/<trial-id>.started` 마커를 생성한다. 세 산출물이 없는데 마커만 남았어도 같은 태그에서 재시도하지 않고 실패를 보존한다.
 - 스크립트가 재실행될 때 완전한 manifest·flow CSV·PCAP이 존재하면 이 셋을 PCAP SHA·ECH·ClientHello로 재검증하고 나서만 skip한다.
 - 세 파일 중 하나라도 누락되거나 검증 FAIL이면 batch를 중단하며, 실패 데이터는 그대로 보존한다. 무작정 해당 trial만 재촬영하여 기존 데이터를 교체하지 않는다. 필요시 별도 run-tag/experiment version에서 처음부터 재생성하고 실패 이유를 연구 로그에 기록한다.
-- 동일 Docker `packet-capture` namespace에 병렬 trial을 실행하지 않는다. `flock` lock은 동시에 같은 run-tag로 batch 실행하는 것을 거부한다.
+- 동일 Docker `packet-capture` namespace에 병렬 trial을 실행하지 않는다. `flock` lock은 **run-tag가 달라도** 동일 사용자에 대해 batch를 직렬화한다.
 - 첫 시작 시 `data/raw/<run-tag>/run-environment.txt`에 실행 환경·generator 소스 SHA-256·ECH material SHA-256을 기록한다. 이후 batch에서 fingerprint가 다르면 중단한다.
 - raw PCAP은 `.gitignore`로 Git 커밋 제외. raw manifest, metadata, processed CSV/provenance는 검증 후 보존 정책에 따라 Git 기록 여부 결정. 저장 공간을 먼저 점검한다.
 

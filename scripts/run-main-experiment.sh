@@ -22,9 +22,10 @@ if [[ "$EXECUTE" != "1" ]]; then
 fi
 
 command -v flock >/dev/null || { echo "FAIL: flock is required" >&2; exit 1; }
-LOCK="/tmp/ech-beacon-${UID}-$RUN_TAG.lock"
+# Shared packet-capture network namespace: serialize ALL run-tags for this user.
+LOCK="/tmp/ech-beacon-${UID}.lock"
 exec 9>"$LOCK"
-flock -n 9 || { echo "FAIL: another capture batch for this RUN_TAG is running" >&2; exit 1; }
+flock -n 9 || { echo "FAIL: another capture batch is running (any RUN_TAG)" >&2; exit 1; }
 
 RAW="$ROOT_DIR/data/raw/$RUN_TAG"
 PCAP="$ROOT_DIR/artifacts/pcap/$RUN_TAG"

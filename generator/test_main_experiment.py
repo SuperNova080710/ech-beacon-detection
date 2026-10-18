@@ -82,6 +82,11 @@ class ExperimentPlannerTests(unittest.TestCase):
         self.assertEqual(len(rows), 3)
         self.assertTrue(rows[-1].startswith("101\tnormal\tinteractive-burst\t1\t"))
 
+    def test_global_capture_lock_is_shared_between_run_tags(self) -> None:
+        script = Path(__file__).resolve().parent.parent / "scripts" / "run-main-experiment.sh"
+        text = script.read_text(encoding="utf-8")
+        self.assertIn('LOCK="/tmp/ech-beacon-${UID}.lock"', text)
+        self.assertNotIn('LOCK="/tmp/ech-beacon-${UID}-$RUN_TAG.lock"', text)
     def test_shell_dry_run_does_not_require_docker(self) -> None:
         script = Path(__file__).resolve().parent.parent / "scripts" / "run-main-experiment.sh"
         completed = subprocess.run(
