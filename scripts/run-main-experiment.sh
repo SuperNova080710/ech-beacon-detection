@@ -88,6 +88,7 @@ while IFS=$'\t' read -r INDEX KIND VALUE NUMBER TRIAL_ID CATEGORY; do
   MANIFEST="$RAW/manifests/$TRIAL_ID.json"
   FLOW="$RAW/flow-metadata/$TRIAL_ID.csv"
   CAPTURE="$PCAP/$CATEGORY/$TRIAL_ID.pcap"
+  MARKER="$RAW/execution-state/$TRIAL_ID.started"
   PRESENT=0
   [[ -e "$MANIFEST" ]] && PRESENT=$((PRESENT+1))
   [[ -e "$FLOW" ]] && PRESENT=$((PRESENT+1))
@@ -100,11 +101,13 @@ while IFS=$'\t' read -r INDEX KIND VALUE NUMBER TRIAL_ID CATEGORY; do
     SKIPPED=$((SKIPPED+1))
     continue
   fi
-  if [[ "$PRESENT" -ne 0 ]]; then
-    echo "FAIL: incomplete $TRIAL_ID output; preserving evidence, refusing rerun" >&2
+  if [[ "$PRESENT" -ne 0 || -e "$MARKER" ]]; then
+    echo "FAIL: incomplete or previously started $TRIAL_ID; preserving evidence, refusing rerun" >&2
     exit 1
   fi
 
+  mkdir -p "$RAW/execution-state"
+  printf "trial_id=%s\nstarted_at_utc=%s\n" "$TRIAL_ID" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$MARKER"
   echo "=== Collect $INDEX/200: $TRIAL_ID ==="
   RUN_TAG="$RUN_TAG" bash "$ROOT_DIR/scripts/run-traffic-trial.sh" "$KIND" "$VALUE" "$NUMBER"
   "${COMPOSE[@]}" exec -T ech-client \
