@@ -62,3 +62,43 @@ python3 detector/test_timing_only.py
 ## 변경 규칙
 
 정의·split·threshold 규칙은 결과를 본 뒤 소급 수정하지 않는다. 오류가 발견되면 과거 원자료·문서를 유지하고 research log에 수정 내용과 새 detector version을 남긴다.
+
+## Issue #7: split / calibration / inference CLI
+
+이 CLI는 별도로 수집·검증된 본 실험 데이터 200개가 준비된 후에만 사용한다. 기존 `pilot-v2`는 acceptance 전용이며 사용이 거부된다.
+
+- `split`: extractor schema v1.0.0과 provenance pass, 전체 200개 trial ID/label 대응을 확인한 다음 calibration 90개/test 110개를 분리한다. test feature 분포나 metric을 계산하지 않는다.
+- `calibrate`: **calibration_features.csv / calibration_labels.csv만 읽어** Normal 40개 CV의 세 번째 순서통계량 `x_(3)`으로 임계값을 정한다. test CSV는 열지 않는다.
+- `predict`: **test_features.csv만 읽어** label 없이 엄격한 `CV < threshold` 규칙으로 110개 예측을 만든다. test label CSV를 읽지 않는다.
+- CSV의 13개 feature 순서·숫자 유한성, Normal CV의 비음수 조건, partition SHA-256과 calibration fingerprint를 검증한다.
+- split/threshold 파일은 기존 출력을 덮어쓰지 않는다. test label은 후속 평가 Issue에서만 별도로 join한다.
+
+### 실행 절차 — 실제 본 실험 200개 dataset 생성 후
+
+```bash
+python3 detector/timing_only_cli.py split \
+  --processed-dir data/processed/<final-run-tag> \
+  --out-dir results/timing-only/<final-run-tag>/split
+
+python3 detector/timing_only_cli.py calibrate \
+  --split-dir results/timing-only/<final-run-tag>/split \
+  --output results/timing-only/<final-run-tag>/calibration.json
+
+python3 detector/timing_only_cli.py predict \
+  --split-dir results/timing-only/<final-run-tag>/split \
+  --calibration results/timing-only/<final-run-tag>/calibration.json \
+  --output results/timing-only/<final-run-tag>/predictions.csv
+```
+
+`calibration.json`은 실제 threshold, Normal calibration CV 정렬값, empirical calibration FPR, split/input SHA-256, 결정적 fingerprint, 계산시간을 기록한다. `predictions.csv`에는 trial ID/score/0·1 예측/버전/fingerprint만 포함하고 정답은 포함하지 않는다.
+
+### Synthetic offline tests — 지금 실행 가능
+
+```bash
+python3 detector/test_timing_only.py
+python3 detector/test_timing_only_cli.py
+```
+
+200행 synthetic fixture를 임시 디렉터리에 만들고 `split → calibrate → predict`를 검증한다. 90/110 partition, Normal-only threshold, label 비사용, byte-identical prediction, checksum tampering, pilot 차단, version mismatch, 누락·중복 ID, overwrite 거부를 확인한다.
+
+테스트가 성공하더라도 실측 threshold, test Precision/Recall/F1/FPR/FNR이나 실제 본 실험 처리 성능은 **미측정**이다.
