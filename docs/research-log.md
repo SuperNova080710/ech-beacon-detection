@@ -947,3 +947,53 @@ Timing-only Baseline (#7) 및 Multi-feature Detector (#9)의 구현과 synthetic
 5. 후속 분석에서 기존 90/110 calibration/test 분할 및 두 detector를 변경 없이 적용
 
 본 기록은 **실제 실험을 실행했다고 주장하지 않는다**. 실제 실행에서 실패가 발생하면 실패 증거를 삭제하지 않고 별도 항목으로 남긴다.
+
+---
+
+## 2026-10-18 — Issue #11 오프라인 200-trial 계획 검증 결과
+
+본 실험 수집 스크립트 구현 후 사용자 Linux 개발 환경에서 **실제 traffic을 발생시키지 않는** 사전 검증을 수행했다.
+
+```text
+python3 generator/test_main_experiment.py
+Ran 11 tests in 0.178s
+OK
+
+python3 extractor/test_main_features.py
+Ran 4 tests in 0.185s
+OK
+
+python3 generator/test_traffic_model.py
+Ran 10 tests in 0.002s
+OK
+
+python3 extractor/test_feature_math.py
+Ran 6 tests in 0.001s
+OK
+
+총 31/31 test PASS (동시 실행 잠금 보완 이전)
+bash -n scripts/run-main-experiment.sh -> 출력 없음
+bash -n scripts/extract-main-features.sh -> 출력 없음
+git diff --check -> 출력 없음
+git status --short -> 출력 없음
+```
+
+Dry-run 명령:
+
+```bash
+RUN_TAG=main-v1 START=1 END=200 bash scripts/run-main-experiment.sh
+```
+
+200개 trial 전체 출력 확인: `001/200 beacon-j00-t01`부터 `200/200 normal-mixed-activity-t30`; 마지막 메시지 `DRY RUN ONLY. Set EXECUTE=1 to collect real Native ECH PCAP.`
+
+검증한 것: trial 200개 정확한 catalog/순서, pilot/invalid tag 거부, paired Beacon random sequence, raw/processed synthetic fixture의 검증 경로, Generator와 Feature Math 회귀 테스트, 실험용 Bash 구문. **Synthetic 200행 출력에 대한 PASS를 실제 raw PCAP/feature 200개 수집 성공으로 해석하지 않는다.**
+
+### 코드 안전성 검토 후 추가 수정
+
+수집 runner의 기존 `flock` 경로가 run-tag별이라 서로 다른 run-tag 사이에서는 공유 packet-capture 환경을 동시에 사용할 위험을 발견했다. `1bec73e` 커밋에서 사용자 단위의 **공통 lock**으로 변경하고 재발 방지 테스트 1개를 추가했다.
+
+이 수정 후 신규 `generator/test_main_experiment.py`의 **12번째 테스트 재실행 결과는 아직 미확인**이며, 실제 ECH Docker precheck 및 Native ECH 실트래픽 본 실험 역시 미실행 상태다. 원격 수정 반영 후 다시 `bash -n`과 12개 테스트를 수행한다.
+
+## 현재 판단
+
+Issue #11의 수집·검증 코드 준비 및 최초 오프라인 검증은 성공했다. 그러나 200개 Native ECH raw/PCAP 수집, 13-feature extraction 200개 검증, 실제 모델 calibration 및 held-out test 성능 측정은 아직 수행하지 않았다. 실패가 발생하면 기존 데이터를 보존하고 본 실험 규칙을 사후 변경하지 않는다.
