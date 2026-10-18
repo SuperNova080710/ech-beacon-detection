@@ -845,3 +845,59 @@ git status --short -> 출력 없음
 **23개 테스트는 synthetic fixture 기반 구현 검증이지, 실제 탐지 품질 검증이 아니다.** 실제 calibration threshold는 계산하지 않았고 Native ECH 본 실험 200개 sample의 수집/추출도 아직 수행하지 않았다. 실제 test Precision/Recall/F1/FPR/FNR, jitter별 탐지율, timing overhead의 본 실험 분포는 **미측정**이다.
 
 이후 Multi-feature Detector 설계에서도 동일한 test partition을 사용하며, 결과를 확인한 후 threshold/feature definition을 소급 수정하지 않는다. 규칙 변경이 필요한 오류가 발생하면 별도 버전 및 research log에 기록한다.
+
+---
+
+## 2026-10-18 — Multi-feature Detector 구현 및 synthetic 통합 검증
+
+### 목적과 사전 설계 고정
+
+Issue #9에서 Feature Extractor schema 1.0.0이 제공하는 timing(4), packet size(3), directionality(3), burst(3)의 **13개 특징 전부**를 사용하는 경량 Multi-feature Detector를 구현했다. 학습 파라미터와 threshold 계산 방식은 **실제 200개 본 실험 데이터 관찰 이전**에 `docs/multi-feature-detector.md`로 고정하고 커밋했다.
+
+### 모델과 데이터 분리
+
+- 모델: L2 정규화 이진 로지스틱 회귀, 선형 logit 점수
+- 결정적 full-batch gradient descent, learning rate `0.1`, epochs `800`, L2 lambda `0.1`, 초기 파라미터 0, early stopping 없음
+- 원본 Feature Extractor v1.0.0의 13개 값을 고정 순서 사용, label/jitter/profile/trial ID는 학습 특징에서 제외
+- Timing-only Issue #7과 동일한 split: Calibration Beacon 50+Normal 40, held-out test Beacon 50+Normal 60
+- Calibration 90개로만 z-score mean/population std와 가중치/intercept 학습; zero-variance feature의 scale은 1
+- Calibration Normal 40개의 logit을 내림차순 정렬하고 세 번째 점수를 threshold로 선택
+- `score > threshold`이면 Beacon(1), 동률·미만이면 Normal(0)
+- Calibration Normal 40개는 학습과 threshold 추정에 **동시에 포함**되므로 empirical calibration FPR≤5%는 **in-sample 제약**이다. held-out test FPR 보장은 아니다
+- Pilot-v1, capture-check-v1, pilot-v2는 detector 학습 및 성능 평가에서 배제
+
+### 구현 파일
+
+- `detector/multi_feature.py`: scaling, L2 logistic training, logit score, Normal-only threshold
+- `detector/multi_feature_cli.py`: calibration-only `train`, label-free `predict`, frozen schema 및 SHA-256/fingerprint 검증, 기존 출력 overwrite 거부
+- `detector/synthetic_fixture.py`: 실제 traffic data를 사용하지 않는 synthetic 200행 fixture
+- `detector/test_multi_feature.py`: 20개 model/CLI unit/integration test
+- `docs/multi-feature-detector.md`: 실험 전 동결한 규칙과 후속 재현 절차
+
+### 로컬 검증 (2026-10-18)
+
+```text
+python3 detector/test_timing_only.py
+Ran 10 tests in 0.002s
+OK
+
+python3 detector/test_timing_only_cli.py
+Ran 13 tests in 0.234s
+OK
+
+python3 detector/test_multi_feature.py
+Ran 20 tests in 3.244s
+OK
+
+전체 43/43 PASS
+git diff --check: 출력 없음
+git status --short: 출력 없음
+```
+
+검증 범위는 deterministic training, 13특징/0분산, strict threshold 및 동률, 40개 calibration Normal·third-largest threshold, NaN/Infinity 거부, 90/110 split, test label 미사용, test data를 제거해도 학습 fingerprint 동일, prediction CSV byte-identical, model/calibration/test checksum 변조 거부, schema mismatch, output overwrite 차단이다. 누락·중복 trial ID 및 pilot 배제는 재사용하는 Issue #7 shared split 단계의 회귀 테스트로 검증했다.
+
+### 연구상 결과와 미측정 구분
+
+위 43개 PASS는 **synthetic fixture 기반 코드 정합성 검증**만 의미한다. 실제 Native ECH 본 실험 200 trials PCAP/processed feature는 아직 생성되지 않았고, 실제 모델 가중치·threshold, held-out Precision/Recall/F1/FPR/FNR, jitter별 결과와 runtime overhead는 **미측정**이다.
+
+Multi-feature가 Timing-only보다 높은 jitter에서 좋은 성능을 얻는지는 확인되지 않았다. 실제 실험 결과가 가설과 다르더라도 저장·보고하며, 본 실험 test 결과를 본 뒤 학습 hyperparameter, feature set, threshold 또는 partition을 사후 변경하지 않는다.
