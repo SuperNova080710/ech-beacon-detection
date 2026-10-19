@@ -901,3 +901,124 @@ git status --short: 출력 없음
 위 43개 PASS는 **synthetic fixture 기반 코드 정합성 검증**만 의미한다. 실제 Native ECH 본 실험 200 trials PCAP/processed feature는 아직 생성되지 않았고, 실제 모델 가중치·threshold, held-out Precision/Recall/F1/FPR/FNR, jitter별 결과와 runtime overhead는 **미측정**이다.
 
 Multi-feature가 Timing-only보다 높은 jitter에서 좋은 성능을 얻는지는 확인되지 않았다. 실제 실험 결과가 가설과 다르더라도 저장·보고하며, 본 실험 test 결과를 본 뒤 학습 hyperparameter, feature set, threshold 또는 partition을 사후 변경하지 않는다.
+
+---
+
+## 2026-10-18 — 본 실험 200개 Native ECH trial 수집 자동화 사전 준비
+
+### 상태
+
+Timing-only Baseline (#7) 및 Multi-feature Detector (#9)의 구현과 synthetic 테스트는 완료했으나, **실제 본 실험 PCAP 200개는 아직 수집하지 않았다**. 이 시점에는 본 실험 성능·가중치·threshold 및 jitter별 F1/Recall/FPR/FNR 수치가 없다.
+
+### 고정한 실행 계획
+
+- Generator 기존 config를 그대로 사용해 Beacon 5 jitter × 20 trial = 100개, Normal interactive 40 + lognormal 30 + mixed 30 = 100개
+- 1-based 실행 순번 `1..200`을 사전 정의: Beacon j00/j10/j30/j50/j70 각 20개, 이후 Normal profile별 40/30/30개
+- Trial마다 30개 HTTPS Native ECH 요청, 30 ClientHello, 29 flow-start IAT 검증
+- Paired jitter 난수열 및 payload profile sequence, class-independent payload 설정 유지
+- Raw PCAP hash와 manifest, flow-metadata CSV, ECH SUCCESS, outer SNI를 재검증
+- 실험 run-tag는 `main-v1`과 같은 새 이름만 허용, pilot/diagnostic run-tag 금지
+
+### 실패·중단 보존 원칙
+
+- 실제 캡처는 실행기가 `EXECUTE=1`을 받았을 때에만 동작하며 기본은 dry-run
+- 실행 도중 기존 manifest/PCAP를 삭제하거나 덮어쓰지 않음
+- Trial 시작 마커를 먼저 생성하여 파일 생성 전 중단된 경우도 재시도로 덮어쓰지 않음
+- 이미 완성된 trial은 PCAP 원자료와 manifest를 재검증한 뒤에만 skip
+- Generator 소스 및 ECH material SHA-256을 run environment에 저장하여 동일 run-tag에 변경된 실험 환경을 혼용하지 않음
+- 한 번에 한 trial만 캡처하고 중단/실패 증거를 보존
+
+### 코드/문서 상태
+
+- `generator/experiment_plan.py`: 정확한 200개 trial catalog 및 batch/dry-run
+- `scripts/run-main-experiment.sh`: `EXECUTE=1` 안전장치, checkpoint, serialized capture, restart verification
+- `generator/verify_main.py`: 실제 raw PCAP ClientHello 재파싱 및 generator 조건 검증
+- `extractor/verify_main_features.py`: processed 200행, schema 및 PCAP provenance 검증
+- `scripts/extract-main-features.sh`: raw 200개 전체 PASS 후 extractor 실행
+- `generator/test_main_experiment.py`, `extractor/test_main_features.py`: Docker 트래픽 없는 synthetic/offline 검증
+- `docs/main-experiment.md`: 실행·보존·후속 평가 절차
+
+### 다음 게이트
+
+1. 사용자 로컬 Linux에서 신규 unit/offline 테스트와 dry-run이 PASS인지 확인
+2. Docker Native ECH 환경 precheck
+3. 승인된 작은 batch로 실제 수집 시작, 이후 200개 완료 여부와 원자료 검증 확인
+4. 검증된 200개에 대해 extractor 1.0.0 실행 후 feature/label/provenance 검사
+5. 후속 분석에서 기존 90/110 calibration/test 분할 및 두 detector를 변경 없이 적용
+
+본 기록은 **실제 실험을 실행했다고 주장하지 않는다**. 실제 실행에서 실패가 발생하면 실패 증거를 삭제하지 않고 별도 항목으로 남긴다.
+
+---
+
+## 2026-10-18 — Issue #11 오프라인 200-trial 계획 검증 결과
+
+본 실험 수집 스크립트 구현 후 사용자 Linux 개발 환경에서 **실제 traffic을 발생시키지 않는** 사전 검증을 수행했다.
+
+```text
+python3 generator/test_main_experiment.py
+Ran 11 tests in 0.178s
+OK
+
+python3 extractor/test_main_features.py
+Ran 4 tests in 0.185s
+OK
+
+python3 generator/test_traffic_model.py
+Ran 10 tests in 0.002s
+OK
+
+python3 extractor/test_feature_math.py
+Ran 6 tests in 0.001s
+OK
+
+총 31/31 test PASS (동시 실행 잠금 보완 이전)
+bash -n scripts/run-main-experiment.sh -> 출력 없음
+bash -n scripts/extract-main-features.sh -> 출력 없음
+git diff --check -> 출력 없음
+git status --short -> 출력 없음
+```
+
+Dry-run 명령:
+
+```bash
+RUN_TAG=main-v1 START=1 END=200 bash scripts/run-main-experiment.sh
+```
+
+200개 trial 전체 출력 확인: `001/200 beacon-j00-t01`부터 `200/200 normal-mixed-activity-t30`; 마지막 메시지 `DRY RUN ONLY. Set EXECUTE=1 to collect real Native ECH PCAP.`
+
+검증한 것: trial 200개 정확한 catalog/순서, pilot/invalid tag 거부, paired Beacon random sequence, raw/processed synthetic fixture의 검증 경로, Generator와 Feature Math 회귀 테스트, 실험용 Bash 구문. **Synthetic 200행 출력에 대한 PASS를 실제 raw PCAP/feature 200개 수집 성공으로 해석하지 않는다.**
+
+### 코드 안전성 검토 후 추가 수정
+
+수집 runner의 기존 `flock` 경로가 run-tag별이라 서로 다른 run-tag 사이에서는 공유 packet-capture 환경을 동시에 사용할 위험을 발견했다. `1bec73e` 커밋에서 사용자 단위의 **공통 lock**으로 변경하고 재발 방지 테스트 1개를 추가했다.
+
+이 수정 후 신규 `generator/test_main_experiment.py`의 **12번째 테스트 재실행 결과는 아직 미확인**이며, 실제 ECH Docker precheck 및 Native ECH 실트래픽 본 실험 역시 미실행 상태다. 원격 수정 반영 후 다시 `bash -n`과 12개 테스트를 수행한다.
+
+## 현재 판단
+
+Issue #11의 수집·검증 코드 준비 및 최초 오프라인 검증은 성공했다. 그러나 200개 Native ECH raw/PCAP 수집, 13-feature extraction 200개 검증, 실제 모델 calibration 및 held-out test 성능 측정은 아직 수행하지 않았다. 실패가 발생하면 기존 데이터를 보존하고 본 실험 규칙을 사후 변경하지 않는다.
+
+---
+
+## 2026-10-19 — Issue #11 전체 run-tag 공통 잠금 보완 후 재검증
+
+2026-10-18 커밋 `1bec73e`에서 공통 packet-capture namespace를 서로 다른 run-tag가 동시에 점유하지 못하도록 공유 `flock` 경로를 적용했다. 신규 회귀 테스트가 포함된 코드를 사용자 Linux에서 다시 실행했다.
+
+```text
+python3 generator/test_main_experiment.py
+Ran 12 tests in 0.175s
+OK
+
+python3 extractor/test_main_features.py
+Ran 4 tests in 0.183s
+OK
+
+bash -n scripts/run-main-experiment.sh -> 출력 없음
+bash -n scripts/extract-main-features.sh -> 출력 없음
+git diff --check -> 출력 없음
+git status --short -> 출력 없음
+```
+
+이번에 확인한 `test_global_capture_lock_is_shared_between_run_tags`를 포함해 신규 오프라인 테스트 **16/16 PASS**. 기존 Generator 10개, Feature Math 6개는 앞선 검증에서 통과했으며 이번 재실행 로그에는 포함되지 않았다. 본 실험 dry-run 200개 전체 순서도 앞서 별도로 확인했다.
+
+**현재 완료 범위:** 수집 스크립트·검증기의 synthetic/offline 테스트, Bash 문법, dry-run 확인. 아직 실제 Docker Native ECH preflight는 이번 기록에서 검증되지 않았으며 실제 본 실험 200개 raw PCAP·processed feature 수집은 시작하지 않았다. 탐지 임계값·실험 결과 지표도 미측정이다.
