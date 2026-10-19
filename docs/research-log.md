@@ -997,3 +997,28 @@ RUN_TAG=main-v1 START=1 END=200 bash scripts/run-main-experiment.sh
 ## 현재 판단
 
 Issue #11의 수집·검증 코드 준비 및 최초 오프라인 검증은 성공했다. 그러나 200개 Native ECH raw/PCAP 수집, 13-feature extraction 200개 검증, 실제 모델 calibration 및 held-out test 성능 측정은 아직 수행하지 않았다. 실패가 발생하면 기존 데이터를 보존하고 본 실험 규칙을 사후 변경하지 않는다.
+
+---
+
+## 2026-10-19 — Issue #11 전체 run-tag 공통 잠금 보완 후 재검증
+
+2026-10-18 커밋 `1bec73e`에서 공통 packet-capture namespace를 서로 다른 run-tag가 동시에 점유하지 못하도록 공유 `flock` 경로를 적용했다. 신규 회귀 테스트가 포함된 코드를 사용자 Linux에서 다시 실행했다.
+
+```text
+python3 generator/test_main_experiment.py
+Ran 12 tests in 0.175s
+OK
+
+python3 extractor/test_main_features.py
+Ran 4 tests in 0.183s
+OK
+
+bash -n scripts/run-main-experiment.sh -> 출력 없음
+bash -n scripts/extract-main-features.sh -> 출력 없음
+git diff --check -> 출력 없음
+git status --short -> 출력 없음
+```
+
+이번에 확인한 `test_global_capture_lock_is_shared_between_run_tags`를 포함해 신규 오프라인 테스트 **16/16 PASS**. 기존 Generator 10개, Feature Math 6개는 앞선 검증에서 통과했으며 이번 재실행 로그에는 포함되지 않았다. 본 실험 dry-run 200개 전체 순서도 앞서 별도로 확인했다.
+
+**현재 완료 범위:** 수집 스크립트·검증기의 synthetic/offline 테스트, Bash 문법, dry-run 확인. 아직 실제 Docker Native ECH preflight는 이번 기록에서 검증되지 않았으며 실제 본 실험 200개 raw PCAP·processed feature 수집은 시작하지 않았다. 탐지 임계값·실험 결과 지표도 미측정이다.
