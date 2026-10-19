@@ -1022,3 +1022,86 @@ git status --short -> 출력 없음
 이번에 확인한 `test_global_capture_lock_is_shared_between_run_tags`를 포함해 신규 오프라인 테스트 **16/16 PASS**. 기존 Generator 10개, Feature Math 6개는 앞선 검증에서 통과했으며 이번 재실행 로그에는 포함되지 않았다. 본 실험 dry-run 200개 전체 순서도 앞서 별도로 확인했다.
 
 **현재 완료 범위:** 수집 스크립트·검증기의 synthetic/offline 테스트, Bash 문법, dry-run 확인. 아직 실제 Docker Native ECH preflight는 이번 기록에서 검증되지 않았으며 실제 본 실험 200개 raw PCAP·processed feature 수집은 시작하지 않았다. 탐지 임계값·실험 결과 지표도 미측정이다.
+
+---
+
+## 2026-10-19 — Issue #11 Native ECH 본 실험 완료
+
+### 실험 환경 및 조건
+
+- Run tag: `main-v1`
+- 수집 기준 Git commit: `9d4dcb1`
+- Native ECH 기반 HTTPS 트래픽 수집
+- Beacon 100개: jitter 0/10/30/50/70% × 20개
+- Normal 100개: interactive-burst 40개, irregular-lognormal 30개, mixed-activity 30개
+- Trial당 HTTPS 트랜잭션 30개, TCP Flow 30개, Flow 시작 시각 기준 IAT 29개
+- Generator 및 Extractor의 동결된 실험 조건 유지
+
+### Raw 데이터 수집 및 검증
+
+- 총 200/200개 PCAP, manifest, flow metadata 수집 완료
+- 실행 시작 마커 200/200개 확인
+- 199개 trial은 기존 `verify_main.py` 독립 검증 PASS
+- 1개 trial은 아래 감사형 검증을 통해 별도 확인
+
+### 예외 사건: normal-irregular-lognormal-t03
+
+- 최초 Generator: 30/30 트랜잭션 성공
+- 최초 TShark 기본 분석: ClientHello 29개
+- 문제 연결: TCP stream 12, 클라이언트 임시 포트 44818
+- TShark가 TLS 트래픽을 EtherNet/IP(ENIP)로 오인식
+- `-d tcp.port==8443,tls` 적용 후 ClientHello 30개 복원
+- 고유 TCP stream 30개, 잘못된 outer SNI 0개
+- 교정 평균 절대 IAT 오차: 0.001168807초
+- 교정 최대 절대 IAT 오차: 0.006194000초
+- 원본 PCAP SHA-256:
+  `5403d9d55104452e479fbb429909c99b5fc2fd4f805473db6080d7a33658cc64`
+- 원본 PCAP과 manifest는 변경하지 않음
+- 별도 감사 증거:
+  `artifacts/audit/main-v1/normal-irregular-lognormal-t03-decode-as.json`
+- 기존 전체 Raw 검증기는 원본 manifest의 ClientHello 29개 기록 때문에 여전히 FAIL
+- 199개 기존 Raw 검증 및 1개 독립 감사 검증으로 전체 200개 검증 완료
+
+### Docker 장애 및 해결
+
+- 호스트에는 Extractor 파일이 존재했으나 실행 중인 ech-client 내부의 마운트 디렉터리가 비어 있었음
+- 바인드 마운트 Source 경로 일치 확인
+- `ech-client` 컨테이너만 강제 재생성
+- Extractor 파일 4개 확인
+- Feature Math 테스트 6/6, Feature 검증 테스트 4/4 PASS
+
+### Processed 데이터 검증
+
+- 실제 PCAP 기반 Feature 추출: 200/200 PASS
+- features.csv: 200행, 13개 유한한 Feature
+- labels.csv: 200행, Beacon 100 / Normal 100
+- provenance.json: 200개 trial 전체 검증 PASS
+- 모든 trial에서 30 TCP Flow / 29 IAT 확인
+- Extractor schema: 1.0.0
+- 전체 200개 Label 및 PCAP SHA-256 provenance 검증 PASS
+- 기존 전체 Raw 검증 스크립트를 통과했다고 주장하지 않으며,
+  완료한 감사형 Raw 검증 후 기존 Extractor를 직접 실행함
+
+### Processed SHA-256
+
+- features.csv:
+  `41cc91142320c9c6789495a559fcd6dd8f0e05c3428802039f6fc8494fd95a78`
+- labels.csv:
+  `8c54a96d276887f1c62fc028cf0251bdb3ea3b916fc01a1f09c8b82bb25981ac`
+- provenance.json:
+  `3b2c9ecc1b56e9bdd554649a020f6242d6649e20`
+
+`sha256sum -c artifacts/audit/main-v1/processed-sha256.txt`:
+3개 파일 모두 성공.
+
+### 보존 및 후속 작업
+
+- `data/raw/main-v1/` 원자료 보존
+- `artifacts/pcap/main-v1/` PCAP 보존
+- `artifacts/audit/main-v1/` 감사 증거 및 추출 로그 보존
+- `data/processed/main-v1/` 결과물 보존
+- 실패 사건과 복구 과정 삭제 또는 은폐 없음
+- Detector threshold 및 모델 규칙 변경 없음
+- Precision, Recall, F1, FPR, FNR 아직 미측정
+- 다음 단계: 사전 고정된 calibration 90개와 held-out test
+  110개 분할을 이용한 두 탐지기 비교 평가
