@@ -39,7 +39,7 @@ Operator Log가 없는 정확한 원인은 확정되지 않았다. 해당 로그
 
 기존 `normal-irregular-lognormal-t03`의 TLS Decode-As 예외 때문에 모든 Trial의 기본 TShark ClientHello 파싱이 통과했다고 주장하지 않는다. 일반 검증 199개와 해당 예외에 대한 별도 감사 기록을 구분한다.
 
-PCAP은 `.gitignore` 정책에 따라 일반 Git 커밋에 포함하지 않는다. 별도 원격 보존 및 배포는 추후 완료해야 한다.
+PCAP은 `.gitignore` 정책에 따라 일반 Git 커밋에 포함하지 않는다. 2026-10-20 GitHub Release `main-v1-pcap-v1`에 별도로 보존했으며, 재다운로드 후 체크섬 일치를 확인하였다.
 
 ## 4. Feature 추출 감사 자료
 
@@ -115,9 +115,38 @@ PCAP은 `.gitignore` 정책에 따라 일반 Git 커밋에 포함하지 않는�
 
 미완료:
 
-- 원본 PCAP 200개의 별도 원격 보존
 - 최종 제출용 재현 ZIP 구성 및 용량 검증
 - 실제 악성 C2 트래픽 또는 외부 데이터셋에서의 일반화 검증
 
 본 기록은 파일 무결성 및 보존 상태에 대한 감사 기록이며,
 논문 최종 제출이나 모든 재현 절차의 완료를 의미하지 않는다.
+
+## 8. PCAP 원격 보존 및 재다운로드 검증
+
+검증일: 2026-10-20
+
+GitHub Release:
+
+https://github.com/SuperNova080710/ech-beacon-detection/releases/tag/main-v1-pcap-v1
+
+원본 PCAP 200개를 `main-v1-pcap-200.tar.gz`로 묶어
+GitHub Release에 보존하였다.
+
+| Release Asset | SHA-256 |
+|---|---|
+| `main-v1-pcap-200.tar.gz` | `d481c3145eeaaca3b9a0e2d8f9bf26a34e7acade2aaea99c43e9e34de89b16e0` |
+| `main-v1-pcap-files.sha256` | `a46aa7b6d7c6eaffbd3ed278f0f24c475a329265b996fa76c782488427e897d3` |
+| `main-v1-pcap-release.sha256` | `2f7656e939cb51eee695cd1cb14e772fd5d65d20d249353c7fd123ac92540e24` |
+
+검증 결과:
+
+- 원본 PCAP 200개와 Manifest의 SHA-256 일치
+- 압축파일 내부 PCAP 200개 확인
+- GitHub Release에서 자산 3개 재다운로드 완료
+- 압축파일 및 파일별 SHA-256 목록 검증 통과
+- 로컬과 다운로드한 Release 자산의 SHA-256 일치
+
+원본 PCAP은 일반 Git 저장소에 포함하지 않는다.
+
+최종 제출용 8MB 이하 재현 ZIP은 별도로 구성하며,
+필요한 경우 위 Release의 원본 PCAP을 참조한다.
