@@ -1105,3 +1105,247 @@ git status --short -> 출력 없음
 - Precision, Recall, F1, FPR, FNR 아직 미측정
 - 다음 단계: 사전 고정된 calibration 90개와 held-out test
   110개 분할을 이용한 두 탐지기 비교 평가
+
+---
+
+## 2026-10-20 — Held-out Test 평가 및 처리 비용 확정
+
+### 목적
+
+Native ECH 본 실험 `main-v1`의 동결된 Dataset과 Detector를
+사용하여 실제 Held-out 탐지 성능, 정상 프로필별 오탐 및
+모델 처리 비용을 평가했다.
+
+결과 확인 후 Feature 정의, Dataset Split, 모델 파라미터,
+Threshold 또는 원본 PCAP을 변경하지 않았다.
+
+### 회귀 테스트 및 데이터 분할
+
+- Timing-only 단위 테스트: 10/10 PASS
+- Timing-only CLI 테스트: 13/13 PASS
+- Multi-feature 테스트: 20/20 PASS
+- 총 43/43 PASS
+- 전체 데이터: Beacon 100개 + Normal 100개
+- Calibration: Beacon 50개 + Normal 40개
+- Held-out Test: Beacon 50개 + Normal 60개
+- 원본 Processed 3개 SHA-256 재검증 PASS
+- Split Manifest 및 Trial ID 독립 검증 PASS
+- Pilot 데이터 혼입 없음
+
+### Frozen Calibration
+
+Timing-only:
+
+- 입력: Calibration Normal 40개
+- 특징: `iat_cv`
+- Threshold: `0.7667340945734821`
+- Calibration empirical FPR: 0.05
+
+Multi-feature:
+
+- 입력: Calibration Beacon 50개 + Normal 40개
+- 특징: 13개
+- 모델: L2 Logistic Regression
+- Learning rate: 0.1
+- Epochs: 800
+- L2 lambda: 0.1
+- Threshold: `-1.2556072376827678`
+- Calibration empirical FPR: 0.05
+
+두 Detector의 모델 Fingerprint 및 Calibration 파일을 검증했다.
+이후 모델 재학습이나 Threshold 변경은 수행하지 않았다.
+
+### Held-out Prediction 및 평가
+
+두 Detector 모두 Test Label을 사용하지 않고
+110개 Trial에 대한 Prediction을 생성했다.
+
+평가 단계에서만 Test Label을 결합하여 성능을 계산했다.
+
+| 지표 | Timing-only | Multi-feature |
+|---|---:|---:|
+| TP | 50 | 50 |
+| FP | 10 | 7 |
+| TN | 50 | 53 |
+| FN | 0 | 0 |
+| Precision | 0.8333 | 0.8772 |
+| Recall | 1.0000 | 1.0000 |
+| F1 | 0.9091 | 0.9346 |
+| FPR | 0.1667 | 0.1167 |
+| FNR | 0.0000 | 0.0000 |
+
+전체 Test 표본은 110개다.
+
+Multi-feature는 Timing-only보다
+정상 트래픽 오탐을 3건 적게 기록했다.
+
+### Jitter별 결과
+
+Jitter 조건: 0%, 10%, 30%, 50%, 70%.
+
+각 조건의 Held-out Beacon 표본은 10개다.
+
+모든 Jitter 조건에서 두 Detector 모두:
+
+- TP: 10
+- FN: 0
+- Recall: 1.0000
+- FNR: 0.0000
+
+각 조건의 Precision/F1 비교에는 동일한
+Normal Test 60개를 공통으로 사용했다.
+
+따라서 Jitter별 조건부 결과는
+독립적인 전체 Test 5회가 아니다.
+
+### Normal 프로필별 오탐
+
+| Normal 프로필 | N | Timing FP | Multi FP |
+|---|---:|---:|---:|
+| interactive-burst | 24 | 0 | 0 |
+| irregular-lognormal | 18 | 10 | 7 |
+| mixed-activity | 18 | 0 | 0 |
+
+오탐은 전부 irregular-lognormal 프로필에서 발생했다.
+
+동일 Normal 표본에 대한 판정 비교:
+
+- 두 Detector 모두 오탐: 7
+- Timing-only만 오탐: 3
+- Multi-feature만 오탐: 0
+- 두 Detector 모두 정상: 50
+
+Multi-feature가 해소한 3건의 오탐에 대해
+특정 Feature가 개선의 원인이라고 단정하지 않는다.
+
+### 순수 추론 처리 비용
+
+동결된 모델과 동일한 Test Feature 110개를 사용했다.
+
+- Python: 3.10.12
+- Linux kernel: 6.8.0-138-generic
+- Warmup: 20회
+- 본 측정: 250회
+- Timer: `time.perf_counter_ns`
+- 반복마다 Detector 실행 순서 교대
+- 기존 Frozen Prediction 각각 110개와 일치
+- Test Label 미사용
+
+| 지표 | Timing-only | Multi-feature |
+|---|---:|---:|
+| Median batch (ms) | 0.080385 | 1.408802 |
+| P95 batch (ms) | 0.086857 | 1.447461 |
+| Median/trial (us) | 0.730777 | 12.807295 |
+
+Multi-feature의 Median 추론 시간은
+Timing-only 대비 약 17.53배였다.
+
+측정 대상은 사전에 추출된 Feature의 순수 추론이며,
+PCAP 파싱, Feature 추출, CSV 파일 I/O 및
+학습·Calibration 시간은 포함되지 않는다.
+
+### 학습 및 Calibration 처리 비용
+
+Frozen 모델과 재계산 결과가 일치하는지 확인했다.
+
+- Warmup: 3회
+- 본 측정: 15회
+- Timer: `time.perf_counter_ns`
+- 반복마다 Detector 실행 순서 교대
+- 모델 파일 저장 없음
+- Test Label 미사용
+
+| 지표 | Timing-only | Multi-feature |
+|---|---:|---:|
+| Median (ms) | 0.027777 | 199.032131 |
+| P95 (ms) | 0.032999 | 216.105765 |
+
+Multi-feature의 Median 준비 시간은
+Timing-only 대비 약 7,165.36배였다.
+
+단, 두 모델의 입력 수와 연산 범위가 다르다.
+
+Timing-only는 Normal 40개의 CV 정렬 및
+Threshold 계산을 수행한다.
+
+Multi-feature는 90개 Calibration 표본으로
+800 Epoch 학습 및 Threshold 계산을 수행한다.
+
+따라서 이 비율은 서로 다른 모델 준비 작업의
+관측된 처리 시간 비율이며,
+동일 연산의 계산 효율 차이를 뜻하지 않는다.
+
+### 평가 결과 무결성
+
+Held-out Evaluation:
+
+`results/metrics/main-v1/heldout-evaluation.json`
+
+SHA-256:
+
+`b357dee703565d98b65467b94f488f9681e53f3ed41b1e3153f432279be9f46b`
+
+Processing Cost Benchmark:
+
+`results/metrics/main-v1/processing-cost-benchmark.json`
+
+SHA-256:
+
+`4d25da1fd02a2b672e42074454239ca1067c2e055090112c732c70391105c3df`
+
+평가 JSON의 전체 Confusion Matrix, Jitter별 지표,
+Normal 프로필별 오탐 및 짝비교 결과를
+원본 Test Label과 Prediction으로 독립 재계산하여 검증했다.
+
+Benchmark JSON 생성 과정에서 기존 Calibration,
+Prediction 및 Held-out Evaluation의 SHA-256을 재검증했다.
+
+모든 확인 항목 PASS.
+
+### 가설 판단 및 연구 한계
+
+사전 가설은 Multi-feature가 Jitter 증가 시
+Timing-only보다 Beacon Recall을 더 잘 유지한다는 것이었다.
+
+그러나 0~70% Jitter의 모든 조건에서
+두 Detector 모두 Recall 100%를 기록했다.
+
+따라서 높은 Jitter에서 Multi-feature의
+Recall 유지 우위는 관측되지 않았으며,
+원 가설의 핵심 주장은 이번 실험에서 지지되지 않는다.
+
+반면 Multi-feature의 전체 Precision/F1 증가와
+FPR 감소가 관측되었다.
+
+이러한 개선은 주로 irregular-lognormal
+정상 트래픽의 오탐 3건 감소에서 발생했다.
+
+주요 한계:
+
+- 실제 악성코드가 아닌 Synthetic HTTPS Beacon
+- Native ECH 단일 실험 환경
+- 기준 Beacon 주기 1.0초
+- Jitter 조건별 Held-out Beacon 10개
+- Normal 프로필 3종으로 제한
+- Calibration과 Held-out FPR의 차이
+- 성능 차이에 대한 통계적 우월성 미확증
+- 처리 비용은 Python 단일 환경의 마이크로벤치마크
+- 개별 반복 측정 시간은 저장하지 않고 요약값만 보존
+- End-to-end Detection latency는 별도 측정하지 않음
+
+Calibration의 경험적 FPR 0.05는
+Held-out FPR 0.1667/0.1167을 보장하지 않았다.
+
+두 Detector의 처리 비용 및 오탐 감소 효과를 함께 고려해야 한다.
+
+### 후속 작업
+
+1. 고정된 평가 결과에서 논문용 표와 그래프 생성
+2. 연구 결과·논의 및 한계 작성
+3. 선행연구 원문과 서지 최종 검증
+4. 완성 논문 작성
+5. 원자료 및 재현 절차를 포함하는 제출 패키지 준비
+6. 새 디렉터리에서 재현성 및 무결성 검증
+
+이번 평가 과정에서 기존 모델 및 원본 데이터를
+성능에 유리하게 변경하지 않았다.

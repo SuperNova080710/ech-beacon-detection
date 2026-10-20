@@ -1,0 +1,48 @@
+{
+  "environment": {
+    "matplotlib": "3.9.4",
+    "platform": "Linux-6.8.0-138-generic-x86_64-with-glibc2.35",
+    "python": "3.10.12"
+  },
+  "figures": {
+    "01-overall-performance.png": {
+      "sha256": "bac23901b0a663f4c28a5884f3a74af5e60caf558df2033cd8b914b7bb0362b2",
+      "size_bytes": 58861
+    },
+    "02-jitter-recall.png": {
+      "sha256": "e589a1ea59b42924d0b9dafbdf63cb640876bfc95f91377487fac65a28b38fcd",
+      "size_bytes": 43840
+    },
+    "03-jitter-conditional-f1.png": {
+      "sha256": "81fe78acb79bb8578457d011c04488ff18acbb52bc666fc61a33f0326bcf073d",
+      "size_bytes": 50372
+    },
+    "04-normal-profile-fpr.png": {
+      "sha256": "94da39d9856ef0c051accf196409693327206cf4d90bf1970b84333c5bd85e44",
+      "size_bytes": 58781
+    },
+    "05-inference-cost.png": {
+      "sha256": "09684ba9c4ffc84529d10a85743a85af822287b79877c34869b25c8896b706be",
+      "size_bytes": 50403
+    },
+    "06-calibration-cost.png": {
+      "sha256": "61e9d5e41cede4544569c126e20d211e8a5a6105f60bb96b1abca8e267559fd8",
+      "size_bytes": 58034
+    }
+  },
+  "notes": [
+    "All figures use frozen main-v1 evaluation results.",
+    "Jitter-level Recall uses 10 Beacon trials per level.",
+    "Conditional jitter F1 reuses the same 60 Normal trials.",
+    "Calibration comparison uses different workloads.",
+    "Latency results are Python microbenchmarks.",
+    "No test-driven model or threshold changes."
+  ],
+  "run_tag": "main-v1",
+  "schema_version": "1.0.0",
+  "script_sha256": "dc92672187bb5b70fc1a1734caa792fb585f9172a16279ed879969a07b6121bb",
+  "source_sha256": {
+    "results/metrics/main-v1/heldout-evaluation.json": "b357dee703565d98b65467b94f488f9681e53f3ed41b1e3153f432279be9f46b",
+    "results/metrics/main-v1/processing-cost-benchmark.json": "4d25da1fd02a2b672e42074454239ca1067c2e055090112c732c70391105c3df"
+  }
+}
