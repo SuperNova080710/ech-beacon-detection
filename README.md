@@ -5,7 +5,7 @@ ALEPH T10 연구 프로젝트 · 작성자 **오리온** · 2026-10-20
 **연구 제목:** Native ECH 환경에서 지터가 적용된 HTTPS Beacon 트래픽의 경량 메타데이터 기반 탐지 비교  
 **English title:** *Design and Evaluation of a Lightweight Multi-Feature Flow-Based Detector for Jittered Beacon Traffic under Native ECH*
 
-> **연구·제출 상태 (2026-10-20):** `main-v1` 합성 실험 200개 Trial 및 두 탐지기 평가 완료. 한국어 논문과 원자료·재현 절차를 포함한 ZIP의 오프라인 검증 통과. **ALEPH T10 과제 제출 완료(제출자 보고)** — 제출 파일명: `T10-OHLion-main-v1-reproduction-final.zip`. **평가 결과·통과 여부는 아직 확인되지 않았습니다.**
+> **연구·제출 상태 (2026-10-20):** `main-v1` 합성 실험 200개 Trial 및 두 탐지기 평가 완료. 한국어 논문과 원자료·재현 절차를 포함한 ZIP의 오프라인 검증 통과. **ALEPH T10 과제 제출 완료(제출자 보고)** — 제출 파일명: `T10-OHLion-main-v1-reproduction-final.zip`. **ALEPH T10 과제 통과 확인(제출자 보고, 2026-10-20).**
 
 ## 논문 및 연구 자료
 
@@ -83,9 +83,11 @@ sha256sum -c artifacts/audit/main-v1/processed-sha256.txt
 - `normal-irregular-lognormal-t03`: 기본 TShark 해석에 예외가 있어 **별도 Decode-As 감사**를 수행했다. 전체 기본 파서 검증을 200/200 성공으로 주장하지 않는다.
 - `beacon-j00-t01`, `beacon-j00-t02`, `beacon-j00-t03`: Operator Log는 존재하지 않는다. 누락 이유는 확정하지 않았고, 원자료를 임의 생성하지 않았다.
 
-## ALEPH T10 최종 제출 및 재현 패키지
+## ALEPH T10 과제 통과 및 최종 재현 패키지
 
-**제출 현황:** 2026년 10월 20일, 제출자가 ALEPH T10 과제에 파일명을 `T10-OHLion-main-v1-reproduction-final.zip`으로 변경한 ZIP을 **제출 완료했다고 보고**하였다. 과제 플랫폼의 심사·채점·최종 합격 결과는 아직 확인하지 않았다.
+**과제 평가 결과:** **통과** — 2026년 10월 20일 제출자가 결과를 알림. 점수와 개별 평가 항목의 판정은 확인하지 않았으며, 통과 결과는 제출자의 확인에 근거한다.
+
+**제출 현황:** 2026년 10월 20일, 제출자가 ALEPH T10 과제에 파일명을 `T10-OHLion-main-v1-reproduction-final.zip`으로 변경한 ZIP을 **제출 완료했다고 보고**하였다. 제출자는 2026년 10월 20일 해당 과제가 **통과되었다고 확인**하였다. 구체적인 점수, 심사표 및 항목별 평가 내역은 별도로 제공되지 않았다.
 
 제출 전 검증한 내용은 다음과 같다.
 
@@ -99,7 +101,7 @@ sha256sum -c artifacts/audit/main-v1/processed-sha256.txt
 | v2 ZIP 구성 | 전체 467개 항목 = SHA-256 검사 대상 파일 466개 + `CHECKSUMS.sha256` 1개 |
 | 독립 추출 폴더에서 검증 | **`PASS: T10 ZIP offline verification complete`** |
 | 제출 양식 | 재현·통과 확인 4항목 및 AI와 본인 판단 3줄 작성 항목 (개별 입력 내용의 플랫폼 저장 여부는 별도 검증하지 않음) |
-| 심사 상태 | **접수 이후 평가 결과 미확인** |
+| 과제 심사 결과 | **통과(제출자 확인, 2026-10-20)** — 점수와 세부 판정은 미제공 |
 
 v2 ZIP에는 수정된 Word 논문 원고, [연구 질문·주제 후보 선정/제외 사유](docs/research-question.md), 원자료 Manifest/Flow Metadata 각 200개, Feature/Label 200개 및 고정된 평가·예측 결과와 실행 절차가 포함된다. 분리된 작업 디렉터리에서 SHA-256 466개, Trial당 30개 연결, Held-out Prediction의 평가 JSON 일치 및 동결 소스 5개 SHA-256 검증을 모두 통과했다.
 
@@ -115,4 +117,4 @@ v2 ZIP에는 수정된 Word 논문 원고, [연구 질문·주제 후보 선정/
 
 본 연구는 **단일 통제 실험 환경의 합성 HTTPS 트래픽**을 대상으로 한다. 실제 악성 C2 트래픽, 외부 데이터셋, 운영망·다중 호스트의 일반화 성능은 검증하지 않았으며, ECH ON/OFF 간 **탐지 성능의 인과적 비교**도 수행하지 않았다. 특징별 제거 실험과 통계적 우월성 검정도 수행하지 않았다.
 
-**제출 이후 확인 사항:** C09(AI와 가설을 다듬은 실제 과정)는 사전 평가 점검에서 추가 증빙이 필요하다고 분류되어 있으며, C51(제출한 URL이 있는 경우 비로그인 접근)은 실제 제출 URL 목록이 확인되지 않아 최종 판정하지 않았다. **제출 자체는 완료했다고 보고되었으며, 이제 ALEPH 심사·평가 결과 및 보완 요청 여부를 확인할 단계**이다. [Issue #14](https://github.com/SuperNova080710/ech-beacon-detection/issues/14)에서 진행 상황을 추적한다.
+**최종 과제 결과:** 2026년 10월 20일 제출자가 ALEPH T10 **통과를 확인**하였다. C09(실제 AI·가설 조정 과정)와 C51(선택 URL의 비로그인 접근)은 제출 전 내부 사전 점검에서 미확인으로 남았지만, 이를 근거로 과제 통과 사실을 부정하거나 모든 세부 평가 항목이 각각 통과했다고 추정하지 않는다. 연구 데이터·모델·평가 지표는 변경하지 않았고, [Issue #14](https://github.com/SuperNova080710/ech-beacon-detection/issues/14)에 작업 종료 기록을 남긴다.
