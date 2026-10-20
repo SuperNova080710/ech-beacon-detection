@@ -22,7 +22,7 @@
 | FPR | 0.1667 | 0.1167 |
 | FNR | 0.0000 | 0.0000 |
 
-<text color="secondary" size="xs">그림 1. 전체 Held-out Test 집합에서의 탐지 성능 비교 (`01-overall-performance.png`)</text>
+*그림 1. 전체 Held-out Test 집합에서의 탐지 성능 비교 (`01-overall-performance.png`)*
 
 실험 결과, 두 탐지기 모두 50개의 Beacon 트래픽을 탐지하여 재현율 1.0000과 미탐률 0.0000을 기록하였다. 이는 본 실험의 평가 집합에서 두 탐지기가 모든 Beacon 표본을 탐지하였음을 의미한다.
 
@@ -48,7 +48,7 @@ Beacon 트래픽의 주기적 특성이 변할 때 탐지 성능이 어떻게 �
 | 50% | 10 / 0 | 10 / 0 | 1.0000 | 1.0000 |
 | 70% | 10 / 0 | 10 / 0 | 1.0000 | 1.0000 |
 
-<text color="secondary" size="xs">그림 2. Jitter 증가에 따른 Beacon 재현율 비교 (`02-jitter-recall.png`)</text>
+*그림 2. Jitter 증가에 따른 Beacon 재현율 비교 (`02-jitter-recall.png`)*
 
 모든 Jitter 조건에서 두 탐지기의 재현율은 1.0000으로 동일하게 나타났다. 특히 실험에서 가장 높은 Jitter 조건인 70%에서도 탐지 실패가 발생하지 않았다.
 
@@ -68,7 +68,7 @@ Jitter 조건별 F1-score를 추가로 비교하기 위해 각 조건의 Beacon 
 | 50% | 0.6667 | 0.7407 |
 | 70% | 0.6667 | 0.7407 |
 
-<text color="secondary" size="xs">그림 3. Jitter 조건별 조건부 F1-score 비교 (`03-jitter-conditional-f1.png`)</text>
+*그림 3. Jitter 조건별 조건부 F1-score 비교 (`03-jitter-conditional-f1.png`)*
 
 Multi-feature 탐지기의 조건부 F1-score는 모든 Jitter 조건에서 더 높게 나타났다. 다만 이러한 차이는 Jitter 증가에 따른 Beacon 탐지율 변화 때문이 아니라, 공통 정상 트래픽 집합에서 발생한 오탐 수의 차이에서 비롯되었다.
 
@@ -89,7 +89,7 @@ Multi-feature 탐지기의 조건부 F1-score는 모든 Jitter 조건에서 더 
 | mixed-activity | 18 | 0 | 0 |
 | 전체 | 60 | 10 | 7 |
 
-<text color="secondary" size="xs">그림 4. 정상 트래픽 유형별 오탐률 비교 (`04-normal-profile-fpr.png`)</text>
+*그림 4. 정상 트래픽 유형별 오탐률 비교 (`04-normal-profile-fpr.png`)*
 
 interactive-burst와 mixed-activity 유형에서는 두 탐지기 모두 오탐이 발생하지 않았다.
 
@@ -117,7 +117,7 @@ interactive-burst와 mixed-activity 유형에서는 두 탐지기 모두 오탐�
 | P95 Batch Time (ms) | 0.086857 | 1.447461 |
 | Median per Trial (μs) | 0.730777 | 12.807295 |
 
-<text color="secondary" size="xs">그림 5. 두 탐지기의 순수 추론 처리 시간 비교 (`05-inference-cost.png`)</text>
+*그림 5. 두 탐지기의 순수 추론 처리 시간 비교 (`05-inference-cost.png`)*
 
 Timing-only 탐지기는 110개 Trial에 대한 중앙값 기준 처리 시간이 0.080385ms였으며, Multi-feature 탐지기는 1.408802ms였다.
 
@@ -142,7 +142,7 @@ Timing-only 탐지기는 정상 Calibration 표본 40개의 `iat_cv`를 정렬�
 | Median (ms) | 0.027777 | 199.032131 |
 | P95 (ms) | 0.032999 | 216.105765 |
 
-<text color="secondary" size="xs">그림 6. 학습 및 Calibration 처리 비용 비교 (`06-calibration-cost.png`)</text>
+*그림 6. 학습 및 Calibration 처리 비용 비교 (`06-calibration-cost.png`)*
 
 측정 결과 Multi-feature의 모델 준비 시간은 Timing-only 대비 약 7,165.36배로 나타났다.
 
