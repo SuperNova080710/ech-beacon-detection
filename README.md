@@ -5,14 +5,14 @@ ALEPH T10 연구 프로젝트 · 작성자 **오리온** · 2026-10-20
 **연구 제목:** Native ECH 환경에서 지터가 적용된 HTTPS Beacon 트래픽의 경량 메타데이터 기반 탐지 비교  
 **English title:** *Design and Evaluation of a Lightweight Multi-Feature Flow-Based Detector for Jittered Beacon Traffic under Native ECH*
 
-> **연구 상태:** `main-v1` 합성 실험 200개 Trial 수집, 두 탐지기 평가 및 결과 분석 완료. 한국어 논문 원고 작성 및 PCAP 원격 보존 완료. **ALEPH T10 제출용 8MB 이하 재현 ZIP과 최종 제출은 아직 완료되지 않았습니다.**
+> **연구 상태:** `main-v1` 합성 실험 200개 Trial 수집, 두 탐지기 평가 및 결과 분석 완료. 한국어 논문 원고 작성 및 PCAP 원격 보존 완료. **8MB 이하 제출 ZIP(1,882,874바이트)을 생성하여 별도 폴더에서 오프라인 검증을 통과했습니다. ALEPH 플랫폼 제출·승인은 아직 완료되지 않았습니다.**
 
 ## 논문 및 연구 자료
 
 - [**한국어 논문 본문 — 오리온**](docs/paper-t10-ko.md): 초록, 서론, 관련 연구, 방법, 결과, 논의, 한계, 결론, 참고문헌 및 부록
 - [사전 확정 실험 설계](docs/experiment-design.md) · [연구 결정 및 오류 기록](docs/research-log.md)
 - [선행연구 비교](docs/related-work.md) · [30편 문헌검토](docs/literature-review-30.md) · [참고문헌 기록](references/references.md)
-- [원본 및 감사 증거 보존 기록](docs/main-v1-evidence-preservation.md)
+- [원본 및 감사 증거 보존 기록](docs/main-v1-evidence-preservation.md) · [T10 평가 기준 51개 점검 및 제출 ZIP 검증 로그](docs/t10-criteria-audit.md)
 - [**PCAP 200개 GitHub Release**](https://github.com/SuperNova080710/ech-beacon-detection/releases/tag/main-v1-pcap-v1)
 
 ## 연구 질문과 사전 가설
@@ -87,4 +87,4 @@ sha256sum -c artifacts/audit/main-v1/processed-sha256.txt
 
 본 연구는 **단일 통제 실험 환경의 합성 HTTPS 트래픽**을 대상으로 한다. 실제 악성 C2 트래픽, 외부 데이터셋, 운영망·다중 호스트의 일반화 성능은 검증하지 않았으며, ECH ON/OFF 간 **탐지 성능의 인과적 비교**도 수행하지 않았다. 특징별 제거 실험과 통계적 우월성 검정도 수행하지 않았다.
 
-최종 ALEPH T10 과제 제출에는 완성 논문과 원자료·실행 절차를 포함하는 **8MB 이하 재현 ZIP** 및 별도 제출 확인이 남아 있다. [Issue #14](https://github.com/SuperNova080710/ech-beacon-detection/issues/14)에서 보존 및 제출 진행 상황을 추적한다.
+최종 ALEPH T10 과제 제출용 **`T10-Orion-main-v1-reproduction.zip`(1,882,874바이트)**은 작성자 로컬 환경에서 별도 폴더 압축 해제와 오프라인 검사(파일 SHA-256 465개, Raw Manifest/Flow Metadata 각 200개, 110개 Held-out Prediction 재계산)를 통과했다. 전체 PCAP 200개는 Release에서 별도 제공한다. **실제 ALEPH 플랫폼 업로드·접수, 선택 URL의 비로그인 접근 및 미충족 과제 항목 보완은 별도 확인이 필요하다.** [Issue #14](https://github.com/SuperNova080710/ech-beacon-detection/issues/14)에서 보존 및 제출 진행 상황을 추적한다.
