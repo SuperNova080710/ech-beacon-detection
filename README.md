@@ -5,7 +5,7 @@ ALEPH T10 연구 프로젝트 · 작성자 **오리온** · 2026-10-20
 **연구 제목:** Native ECH 환경에서 지터가 적용된 HTTPS Beacon 트래픽의 경량 메타데이터 기반 탐지 비교  
 **English title:** *Design and Evaluation of a Lightweight Multi-Feature Flow-Based Detector for Jittered Beacon Traffic under Native ECH*
 
-> **연구 상태:** `main-v1` 합성 실험 200개 Trial 수집, 두 탐지기 평가 및 결과 분석 완료. 한국어 논문 원고 작성 및 PCAP 원격 보존 완료. **8MB 이하 제출 ZIP(1,883,864바이트)을 생성하여 별도 폴더에서 오프라인 검증을 통과했습니다. ALEPH 플랫폼 제출·승인은 아직 완료되지 않았습니다.**
+> **연구 상태:** `main-v1` 합성 실험 200개 Trial 수집, 두 탐지기 평가 및 결과 분석 완료. 한국어 논문 원고 작성 및 PCAP 원격 보존 완료. **주제 선정 원본과 수정된 Word 논문을 포함하는 v2 제출 ZIP(1,888,317바이트)의 오프라인 검증을 통과했습니다. ALEPH 플랫폼 제출·승인은 아직 완료되지 않았습니다.**
 
 ## 논문 및 연구 자료
 
@@ -83,10 +83,26 @@ sha256sum -c artifacts/audit/main-v1/processed-sha256.txt
 - `normal-irregular-lognormal-t03`: 기본 TShark 해석에 예외가 있어 **별도 Decode-As 감사**를 수행했다. 전체 기본 파서 검증을 200/200 성공으로 주장하지 않는다.
 - `beacon-j00-t01`, `beacon-j00-t02`, `beacon-j00-t03`: Operator Log는 존재하지 않는다. 누락 이유는 확정하지 않았고, 원자료를 임의 생성하지 않았다.
 
+## ALEPH T10 제출 패키지 v2 — 검증 완료
+
+**현재 제출 대상:** `T10-Orion-main-v1-reproduction.zip` (별도 출력 경로: `t10-submission-v2/`)
+
+| 항목 | v2 납품본 |
+|---|---|
+| 기준 Git ref | `origin/main` = `551edbd36e29ea280a2572d8a20efb91694a92ac` (제작 당시 기준) |
+| ZIP 크기 | **1,888,317 bytes** (제한 8,000,000 bytes 이내) |
+| ZIP 전체 SHA-256 | `5e2d6bb31412ced7a7cd336904730e14bf5becdf41f8a0e2c80e754fbb745343` |
+| ZIP 항목 수 | **467개**: SHA-256 대조 대상 466개 + 목록 파일 `CHECKSUMS.sha256` 1개 |
+| 새 폴더에서 실행한 검증 | **`PASS: T10 ZIP offline verification complete`** |
+
+v2 패키지는 수정된 Word 원고 및 [연구 질문·주제 선정 기록](docs/research-question.md)을 추가로 포함한다. 제출자가 보고한 최종 검증에서는 Manifest/Flow Metadata 각 200개, Trial당 30개 연결, Features/Labels 200개 고유 Trial, Held-out Prediction의 평가 JSON 일치와 고정 원본 5개 SHA-256 검사를 모두 통과했다.
+
+**검증 범위:** 제출 ZIP 내부 자료·평가 결과의 오프라인 무결성 검사이며, 전체 PCAP 재처리·Native ECH 실험 재수집·모델 재학습을 뜻하지 않는다. 자료의 평가 대상 외 일반화 성능을 주장하지 않는다. 원본 PCAP 200개는 [GitHub Release](https://github.com/SuperNova080710/ech-beacon-detection/releases/tag/main-v1-pcap-v1)에 별도 보존한다.
+
+기존 v1 제출 ZIP(1,883,864 bytes, SHA-256 `09518e47671e468ef0a1d6b16755d383bae186a4951429dfac568846b73ed6d2`)은 보존한 **이전 버전**이다. **현재 제출 대상은 v2이며, 기록용 README 수정으로 이미 검증된 v2 ZIP을 다시 생성할 필요는 없다.**
+
 ## 해석의 한계 및 후속 작업
 
 본 연구는 **단일 통제 실험 환경의 합성 HTTPS 트래픽**을 대상으로 한다. 실제 악성 C2 트래픽, 외부 데이터셋, 운영망·다중 호스트의 일반화 성능은 검증하지 않았으며, ECH ON/OFF 간 **탐지 성능의 인과적 비교**도 수행하지 않았다. 특징별 제거 실험과 통계적 우월성 검정도 수행하지 않았다.
 
-최종 납품 ZIP SHA-256(제출자 로컬 `sha256sum` 출력): `09518e47671e468ef0a1d6b16755d383bae186a4951429dfac568846b73ed6d2`. 이 값은 최신 연구 결과가 포함된 **확정된 ZIP의 식별 정보**이며, 이후 GitHub의 제출 현황 기록을 갱신해도 검증된 ZIP을 다시 생성할 필요는 없다.
-
-최종 ALEPH T10 과제 제출용 **`T10-Orion-main-v1-reproduction.zip`(1,883,864바이트)**은 작성자 로컬 환경에서 별도 폴더 압축 해제와 오프라인 검사(파일 SHA-256 465개, Raw Manifest/Flow Metadata 각 200개, 110개 Held-out Prediction 재계산)를 통과했다. 전체 PCAP 200개는 Release에서 별도 제공한다. **실제 ALEPH 플랫폼 업로드·접수, 선택 URL의 비로그인 접근 및 미충족 과제 항목 보완은 별도 확인이 필요하다.** [Issue #14](https://github.com/SuperNova080710/ech-beacon-detection/issues/14)에서 보존 및 제출 진행 상황을 추적한다.
+**남은 제출 전 확인:** C09의 실제 AI·가설 조정 과정 증빙, 선택 URL의 비로그인 시크릿 창 접근(C51), ALEPH 제출 폼의 재현 확인 4항목·AI 판단 3줄 기재 및 실제 ZIP 업로드·접수 확인. [Issue #14](https://github.com/SuperNova080710/ech-beacon-detection/issues/14)에서 진행 상황을 추적한다.
