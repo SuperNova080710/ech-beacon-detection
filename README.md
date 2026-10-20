@@ -10,7 +10,7 @@ ALEPH T10 연구 프로젝트 · 작성자 **오리온** · 2026-10-20
 ## 논문 및 연구 자료
 
 - [**한국어 논문 본문 — 오리온**](docs/paper-t10-ko.md): 초록, 서론, 관련 연구, 방법, 결과, 논의, 한계, 결론, 참고문헌 및 부록
-- [사전 확정 실험 설계](docs/experiment-design.md) · [연구 결정 및 오류 기록](docs/research-log.md)
+- [연구 질문 및 후보 주제 3개·제외 이유](docs/research-question.md) · [사전 확정 실험 설계](docs/experiment-design.md) · [연구 결정 및 오류 기록](docs/research-log.md)
 - [선행연구 비교](docs/related-work.md) · [30편 문헌검토](docs/literature-review-30.md) · [참고문헌 기록](references/references.md)
 - [원본 및 감사 증거 보존 기록](docs/main-v1-evidence-preservation.md) · [T10 평가 기준 51개 점검 및 제출 ZIP 검증 로그](docs/t10-criteria-audit.md)
 - [**PCAP 200개 GitHub Release**](https://github.com/SuperNova080710/ech-beacon-detection/releases/tag/main-v1-pcap-v1)
