@@ -1,0 +1,11 @@
+run_tag=main-v1
+started_at_utc=2026-10-19T01:06:18Z
+git_commit=9d4dcb1afe9419eb23b6db4a7d03b03133e9417a
+generator_source_sha256=25031cd814434596d09fc78896c69a6578f01e27cadf7f7ff6e3b38fdce1435a
+ech_material_sha256=a0fbaac8176b1b22f148d1afbb2d9fdda3d90340ab73f03786630a4c9c3bffb0
+host_kernel=Linux 6.8.0-138-generic
+docker_version=Docker version 26.1.4, build 5650f9b
+compose_version=2.27.1
+python_version=Python 3.10.12
+extractor_feature_version=1.0.0
+capture_drain_seconds=1

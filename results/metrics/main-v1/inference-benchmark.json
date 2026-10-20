@@ -1,0 +1,68 @@
+{
+  "run_tag": "main-v1",
+  "benchmark_type": "in_memory_python_inference",
+  "unit": "microseconds_per_trial",
+  "test_feature_sha256": "a8538e540c6bad8f032651da4ac192ab51ee5458da4882c5d470d0c3201d1c5b",
+  "evaluation_sha256": "b357dee703565d98b65467b94f488f9681e53f3ed41b1e3153f432279be9f46b",
+  "python_version": "3.10.12 (main, Aug 31 2026, 10:18:17) [GCC 11.4.0]",
+  "platform": "Linux-6.8.0-138-generic-x86_64-with-glibc2.35",
+  "processor": "x86_64",
+  "warmup_batches": 20,
+  "measurement_rounds": 11,
+  "repetitions_per_round": 100,
+  "trials_per_batch": 110,
+  "prior_calibration_times_ms": {
+    "timing_only_calibration": 2.188544,
+    "multi_feature_training_and_calibration": 213.388987
+  },
+  "results": {
+    "timing-only": {
+      "median_us_per_trial": 0.7816795454545454,
+      "min_us_per_trial": 0.758649,
+      "max_us_per_trial": 0.8226730909090909,
+      "samples_us_per_trial": [
+        0.7689014545454544,
+        0.7900955454545454,
+        0.784661090909091,
+        0.7806547272727273,
+        0.758649,
+        0.8226730909090909,
+        0.7838788181818181,
+        0.7730963636363637,
+        0.7591643636363636,
+        0.7816795454545454,
+        0.7819413636363637
+      ],
+      "predictions_per_round": 11000,
+      "prediction_sha256": "afb3ab1fd99461e2cd56f54a8acde3e899d7bbdd3fefd9096b7c330b7079642a"
+    },
+    "multi-feature": {
+      "median_us_per_trial": 13.195940545454546,
+      "min_us_per_trial": 13.076754999999999,
+      "max_us_per_trial": 14.155727545454544,
+      "samples_us_per_trial": [
+        14.155727545454544,
+        13.118947545454546,
+        13.960417545454545,
+        13.139284181818182,
+        13.076754999999999,
+        13.224217363636365,
+        13.119081454545453,
+        13.085019818181818,
+        13.211786454545454,
+        13.195940545454546,
+        13.195964272727274
+      ],
+      "predictions_per_round": 11000,
+      "prediction_sha256": "ffa99bcb98eb0b15e0ce9fff3dfa60c58404e39e255c44d28c5705aea67e7ec0"
+    }
+  },
+  "limitations": [
+    "Measures in-memory Python inference, not end-to-end detection latency.",
+    "Excludes PCAP parsing, feature extraction, CSV I/O and network time.",
+    "Runtime depends on host load, CPU and Python interpreter.",
+    "Calibration timing scopes differ and are not directly comparable.",
+    "Test labels are not used.",
+    "No model or threshold changes."
+  ]
+}
