@@ -1,0 +1,175 @@
+=== Main experiment plan RUN_TAG=main-v1 START=7 END=7 ===
+007/200 beacon-j00-t07
+=== Native ECH preflight ===
+
+========================================================================
+Container/version checks
+========================================================================
+NAME                              IMAGE                                         COMMAND                   SERVICE          CREATED        STATUS                  PORTS
+ech-beacon-lab-ech-client-1       ech-beacon-tools:openssl-4.0.1-curl-8.20.0    "sleep infinity"          ech-client       36 hours ago   Up 36 hours             
+ech-beacon-lab-ech-nginx-1        ech-beacon-nginx:nginx-1.30.6-openssl-4.0.1   "/usr/local/sbin/ngi…"   ech-nginx        41 hours ago   Up 41 hours (healthy)   127.0.0.1:9444->8443/tcp
+ech-beacon-lab-packet-capture-1   ech-beacon-tools:openssl-4.0.1-curl-8.20.0    "sleep infinity"          packet-capture   41 hours ago   Up 41 hours             
+OpenSSL 4.0.1 9 Jun 2026 (Library: OpenSSL 4.0.1 9 Jun 2026)
+curl 8.20.0 (x86_64-pc-linux-gnu) libcurl/8.20.0 OpenSSL/4.0.1
+Release-Date: 2026-04-29
+Protocols: dict file ftp ftps gopher gophers http https imap imaps ipfs ipns mqtt mqtts pop3 pop3s rtsp smtp smtps telnet tftp ws wss
+Features: alt-svc AsynchDNS ECH HSTS HTTPS-proxy HTTPSRR IPv6 Largefile SSL threadsafe TLS-SRP UnixSockets
+nginx version: nginx/1.30.6
+built by gcc 12.2.0 (Debian 12.2.0-14+deb12u1) 
+built with OpenSSL 4.0.1 9 Jun 2026
+TLS SNI support enabled
+configure arguments: --prefix=/usr/local/nginx --sbin-path=/usr/local/sbin/nginx --conf-path=/etc/nginx/nginx.conf --pid-path=/tmp/nginx.pid --lock-path=/tmp/nginx.lock --http-log-path=/dev/stdout --error-log-path=/dev/stderr --with-http_ssl_module --with-http_v2_module --with-threads --with-cc-opt='-O2 -fstack-protector-strong -I/opt/openssl/include' --with-ld-opt='-L/opt/openssl/lib64 -L/opt/openssl/lib -Wl,-rpath,/opt/openssl/lib64 -Wl,-rpath,/opt/openssl/lib'
+
+========================================================================
+Plain TLS request (ECH OFF)
+========================================================================
+HTTP/1.1 200 OK
+Server: nginx
+Date: Mon, 19 Oct 2026 01:20:05 GMT
+Content-Type: application/json
+Content-Length: 94
+Connection: keep-alive
+X-ECH-Status: NOT_TRIED
+X-TLS-SNI: protected.ech.test
+
+{"server":"protected","ech_status":"NOT_TRIED","outer_sni":"","tls_sni":"protected.ech.test"}
+
+========================================================================
+Native ECH request (ECH ON)
+========================================================================
+HTTP/1.1 200 OK
+Server: nginx
+Date: Mon, 19 Oct 2026 01:20:05 GMT
+Content-Type: application/json
+Content-Length: 107
+Connection: keep-alive
+X-ECH-Status: SUCCESS
+X-ECH-Outer-SNI: public.ech.test
+X-TLS-SNI: protected.ech.test
+
+{"server":"protected","ech_status":"SUCCESS","outer_sni":"public.ech.test","tls_sni":"protected.ech.test"}
+
+========================================================================
+Recent NGINX ECH evidence
+========================================================================
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:18:47 +0000] "GET /traffic/medium?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:18:48 +0000] "GET /traffic/small?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:18:49 +0000] "GET /traffic/small?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:18:50 +0000] "GET /traffic/small?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:18:51 +0000] "GET /traffic/medium?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:18:52 +0000] "GET /traffic/large?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:18:53 +0000] "GET /traffic/small?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:18:54 +0000] "GET /traffic/medium?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:18:57 +0000] "GET /ech-status HTTP/1.1" 200 sni="protected.ech.test" ech_status="NOT_TRIED" ech_outer_sni="-"
+ech-nginx-1  | 2026/10/19 01:18:57 [info] 7#7: *645 client 192.168.192.3 closed keepalive connection
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:18:57 +0000] "GET /ech-status HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 2026/10/19 01:18:57 [info] 7#7: *646 client 192.168.192.3 closed keepalive connection
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:18:59 +0000] "GET /traffic/large?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:00 +0000] "GET /traffic/small?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:01 +0000] "GET /traffic/small?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:02 +0000] "GET /traffic/small?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:03 +0000] "GET /traffic/medium?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:04 +0000] "GET /traffic/small?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:05 +0000] "GET /traffic/small?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:06 +0000] "GET /traffic/small?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:07 +0000] "GET /traffic/small?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:08 +0000] "GET /traffic/small?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:09 +0000] "GET /traffic/medium?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:10 +0000] "GET /traffic/small?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:11 +0000] "GET /traffic/small?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:12 +0000] "GET /traffic/medium?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:13 +0000] "GET /traffic/small?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:14 +0000] "GET /traffic/small?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:15 +0000] "GET /traffic/small?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:16 +0000] "GET /traffic/large?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:17 +0000] "GET /traffic/small?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:18 +0000] "GET /traffic/large?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:19 +0000] "GET /traffic/medium?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:20 +0000] "GET /traffic/large?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:21 +0000] "GET /traffic/small?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:22 +0000] "GET /traffic/large?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:23 +0000] "GET /traffic/large?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:24 +0000] "GET /traffic/small?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:25 +0000] "GET /traffic/large?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:26 +0000] "GET /traffic/medium?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:27 +0000] "GET /traffic/small?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:28 +0000] "GET /traffic/small?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:31 +0000] "GET /ech-status HTTP/1.1" 200 sni="protected.ech.test" ech_status="NOT_TRIED" ech_outer_sni="-"
+ech-nginx-1  | 2026/10/19 01:19:31 [info] 9#9: *677 client 192.168.192.3 closed keepalive connection
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:31 +0000] "GET /ech-status HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 2026/10/19 01:19:31 [info] 9#9: *678 client 192.168.192.3 closed keepalive connection
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:33 +0000] "GET /traffic/medium?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:34 +0000] "GET /traffic/large?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:35 +0000] "GET /traffic/small?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:36 +0000] "GET /traffic/small?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:37 +0000] "GET /traffic/small?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:38 +0000] "GET /traffic/medium?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:39 +0000] "GET /traffic/large?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:40 +0000] "GET /traffic/small?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:41 +0000] "GET /traffic/medium?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:42 +0000] "GET /traffic/large?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:43 +0000] "GET /traffic/small?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:44 +0000] "GET /traffic/small?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:45 +0000] "GET /traffic/medium?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:46 +0000] "GET /traffic/small?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:47 +0000] "GET /traffic/small?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:48 +0000] "GET /traffic/small?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:49 +0000] "GET /traffic/medium?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:50 +0000] "GET /traffic/large?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:51 +0000] "GET /traffic/small?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:52 +0000] "GET /traffic/large?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:53 +0000] "GET /traffic/small?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:54 +0000] "GET /traffic/small?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:55 +0000] "GET /traffic/large?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:56 +0000] "GET /traffic/small?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:57 +0000] "GET /traffic/medium?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:58 +0000] "GET /traffic/small?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:19:59 +0000] "GET /traffic/medium?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:20:00 +0000] "GET /traffic/medium?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:20:01 +0000] "GET /traffic/small?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:20:02 +0000] "GET /traffic/medium?d=qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:20:05 +0000] "GET /ech-status HTTP/1.1" 200 sni="protected.ech.test" ech_status="NOT_TRIED" ech_outer_sni="-"
+ech-nginx-1  | 2026/10/19 01:20:05 [info] 7#7: *709 client 192.168.192.3 closed keepalive connection
+ech-nginx-1  | 2026/10/19 01:20:05 [info] 7#7: *710 client 192.168.192.3 closed keepalive connection
+ech-nginx-1  | 192.168.192.3 - [19/Oct/2026:01:20:05 +0000] "GET /ech-status HTTP/1.1" 200 sni="protected.ech.test" ech_status="SUCCESS" ech_outer_sni="public.ech.test"
+
+========================================================================
+Verification result
+========================================================================
+PASS: ECH OFF -> NOT_TRIED
+PASS: ECH ON  -> SUCCESS
+PASS: outer SNI -> public.ech.test
+Evidence directory: /home/sgp/ALEPH/ech-beacon-detection/artifacts/evidence
+=== Generator unit tests ===
+test_beacon_jitter_levels_share_normalized_vector_and_payloads (__main__.TrafficModelTests.test_beacon_jitter_levels_share_normalized_vector_and_payloads) ... ok
+test_beacon_jitter_ranges (__main__.TrafficModelTests.test_beacon_jitter_ranges) ... ok
+test_beacon_plan_is_deterministic (__main__.TrafficModelTests.test_beacon_plan_is_deterministic) ... ok
+test_beacon_zero_jitter_is_exactly_one_second (__main__.TrafficModelTests.test_beacon_zero_jitter_is_exactly_one_second) ... ok
+test_interactive_burst_intervals_fit_declared_ranges (__main__.TrafficModelTests.test_interactive_burst_intervals_fit_declared_ranges) ... ok
+test_lognormal_is_clipped (__main__.TrafficModelTests.test_lognormal_is_clipped) ... ok
+test_mixed_activity_uses_only_declared_ranges (__main__.TrafficModelTests.test_mixed_activity_uses_only_declared_ranges) ... ok
+test_normal_plans_are_deterministic_and_have_29_intervals (__main__.TrafficModelTests.test_normal_plans_are_deterministic_and_have_29_intervals) ... ok
+test_payload_sequence_uses_valid_profiles (__main__.TrafficModelTests.test_payload_sequence_uses_valid_profiles) ... ok
+test_payload_sizes_are_predefined (__main__.TrafficModelTests.test_payload_sizes_are_predefined) ... ok
+
+----------------------------------------------------------------------
+Ran 10 tests in 0.002s
+
+OK
+=== Collect 7/200: beacon-j00-t07 ===
+TRIAL_ID=beacon-j00-t07
+STATUS=success
+MANIFEST=/data/raw/main-v1/manifests/beacon-j00-t07.json
+FLOW_METADATA=/data/raw/main-v1/flow-metadata/beacon-j00-t07.csv
+TRANSACTIONS=30
+FINALIZED=/data/raw/main-v1/manifests/beacon-j00-t07.json
+PCAP_SHA256=e83b5e63f36b012fb9c2925b95ab1a7ba54a4a83cefa291994dfaa0d72b2aa54
+CLIENTHELLO_COUNT=30
+MEAN_ABS_IAT_ERROR_S=0.002193213
+MAX_ABS_IAT_ERROR_S=0.007573128
+PASS: beacon-j00-t07
+Manifest: /home/sgp/ALEPH/ech-beacon-detection/data/raw/main-v1/manifests/beacon-j00-t07.json
+PCAP: /home/sgp/ALEPH/ech-beacon-detection/artifacts/pcap/main-v1/beacon/beacon-j00-t07.pcap
+SHA-256: e83b5e63f36b012fb9c2925b95ab1a7ba54a4a83cefa291994dfaa0d72b2aa54
+PASS: raw trial beacon-j00-t07
+BATCH PASS: RUN_TAG=main-v1 newly_collected=1 verified_existing=0

@@ -1,0 +1,10 @@
+HTTP/1.1 200 OK
+Server: nginx
+Date: Mon, 19 Oct 2026 08:11:49 GMT
+Content-Type: application/json
+Content-Length: 94
+Connection: keep-alive
+X-ECH-Status: NOT_TRIED
+X-TLS-SNI: protected.ech.test
+
+{"server":"protected","ech_status":"NOT_TRIED","outer_sni":"","tls_sni":"protected.ech.test"}
