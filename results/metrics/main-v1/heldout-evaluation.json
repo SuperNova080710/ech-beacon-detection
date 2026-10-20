@@ -1,0 +1,274 @@
+{
+  "detectors": {
+    "multi-feature": {
+      "by_jitter_with_shared_normal_60": {
+        "0": {
+          "FN": 0,
+          "FP": 7,
+          "TN": 53,
+          "TP": 10,
+          "f1": 0.7407407407407407,
+          "fnr": 0.0,
+          "fpr": 0.11666666666666667,
+          "n": 70,
+          "precision": 0.5882352941176471,
+          "recall": 1.0
+        },
+        "10": {
+          "FN": 0,
+          "FP": 7,
+          "TN": 53,
+          "TP": 10,
+          "f1": 0.7407407407407407,
+          "fnr": 0.0,
+          "fpr": 0.11666666666666667,
+          "n": 70,
+          "precision": 0.5882352941176471,
+          "recall": 1.0
+        },
+        "30": {
+          "FN": 0,
+          "FP": 7,
+          "TN": 53,
+          "TP": 10,
+          "f1": 0.7407407407407407,
+          "fnr": 0.0,
+          "fpr": 0.11666666666666667,
+          "n": 70,
+          "precision": 0.5882352941176471,
+          "recall": 1.0
+        },
+        "50": {
+          "FN": 0,
+          "FP": 7,
+          "TN": 53,
+          "TP": 10,
+          "f1": 0.7407407407407407,
+          "fnr": 0.0,
+          "fpr": 0.11666666666666667,
+          "n": 70,
+          "precision": 0.5882352941176471,
+          "recall": 1.0
+        },
+        "70": {
+          "FN": 0,
+          "FP": 7,
+          "TN": 53,
+          "TP": 10,
+          "f1": 0.7407407407407407,
+          "fnr": 0.0,
+          "fpr": 0.11666666666666667,
+          "n": 70,
+          "precision": 0.5882352941176471,
+          "recall": 1.0
+        }
+      },
+      "by_normal_profile": {
+        "interactive-burst": {
+          "FN": 0,
+          "FP": 0,
+          "TN": 24,
+          "TP": 0,
+          "f1": null,
+          "fnr": null,
+          "fpr": 0.0,
+          "n": 24,
+          "precision": null,
+          "recall": null
+        },
+        "irregular-lognormal": {
+          "FN": 0,
+          "FP": 7,
+          "TN": 11,
+          "TP": 0,
+          "f1": 0.0,
+          "fnr": null,
+          "fpr": 0.3888888888888889,
+          "n": 18,
+          "precision": 0.0,
+          "recall": null
+        },
+        "mixed-activity": {
+          "FN": 0,
+          "FP": 0,
+          "TN": 18,
+          "TP": 0,
+          "f1": null,
+          "fnr": null,
+          "fpr": 0.0,
+          "n": 18,
+          "precision": null,
+          "recall": null
+        }
+      },
+      "calibration_fingerprint": "39c66c04eed7ee4bd9c020e7f71a856d2b099f6fed6795ffa03807bd3a439aa6",
+      "calibration_sha256": "4731d62e8dbb3eada7a2f2e93197ed8934efb6036670dba74582db36c1f419c5",
+      "overall": {
+        "FN": 0,
+        "FP": 7,
+        "TN": 53,
+        "TP": 50,
+        "f1": 0.9345794392523364,
+        "fnr": 0.0,
+        "fpr": 0.11666666666666667,
+        "n": 110,
+        "precision": 0.8771929824561403,
+        "recall": 1.0
+      },
+      "prediction_sha256": "ffa99bcb98eb0b15e0ce9fff3dfa60c58404e39e255c44d28c5705aea67e7ec0",
+      "threshold": -1.2556072376827678
+    },
+    "timing-only": {
+      "by_jitter_with_shared_normal_60": {
+        "0": {
+          "FN": 0,
+          "FP": 10,
+          "TN": 50,
+          "TP": 10,
+          "f1": 0.6666666666666666,
+          "fnr": 0.0,
+          "fpr": 0.16666666666666666,
+          "n": 70,
+          "precision": 0.5,
+          "recall": 1.0
+        },
+        "10": {
+          "FN": 0,
+          "FP": 10,
+          "TN": 50,
+          "TP": 10,
+          "f1": 0.6666666666666666,
+          "fnr": 0.0,
+          "fpr": 0.16666666666666666,
+          "n": 70,
+          "precision": 0.5,
+          "recall": 1.0
+        },
+        "30": {
+          "FN": 0,
+          "FP": 10,
+          "TN": 50,
+          "TP": 10,
+          "f1": 0.6666666666666666,
+          "fnr": 0.0,
+          "fpr": 0.16666666666666666,
+          "n": 70,
+          "precision": 0.5,
+          "recall": 1.0
+        },
+        "50": {
+          "FN": 0,
+          "FP": 10,
+          "TN": 50,
+          "TP": 10,
+          "f1": 0.6666666666666666,
+          "fnr": 0.0,
+          "fpr": 0.16666666666666666,
+          "n": 70,
+          "precision": 0.5,
+          "recall": 1.0
+        },
+        "70": {
+          "FN": 0,
+          "FP": 10,
+          "TN": 50,
+          "TP": 10,
+          "f1": 0.6666666666666666,
+          "fnr": 0.0,
+          "fpr": 0.16666666666666666,
+          "n": 70,
+          "precision": 0.5,
+          "recall": 1.0
+        }
+      },
+      "by_normal_profile": {
+        "interactive-burst": {
+          "FN": 0,
+          "FP": 0,
+          "TN": 24,
+          "TP": 0,
+          "f1": null,
+          "fnr": null,
+          "fpr": 0.0,
+          "n": 24,
+          "precision": null,
+          "recall": null
+        },
+        "irregular-lognormal": {
+          "FN": 0,
+          "FP": 10,
+          "TN": 8,
+          "TP": 0,
+          "f1": 0.0,
+          "fnr": null,
+          "fpr": 0.5555555555555556,
+          "n": 18,
+          "precision": 0.0,
+          "recall": null
+        },
+        "mixed-activity": {
+          "FN": 0,
+          "FP": 0,
+          "TN": 18,
+          "TP": 0,
+          "f1": null,
+          "fnr": null,
+          "fpr": 0.0,
+          "n": 18,
+          "precision": null,
+          "recall": null
+        }
+      },
+      "calibration_fingerprint": "b260e1d194ef41937d9a1decdf4fa7dc2448e55941d5dadeb0b1ca48d60d807e",
+      "calibration_sha256": "f4ad9decd7cf52da9e8a1f9ff46e3319cd92725a5eb3851d7b9c08ec46edab0b",
+      "overall": {
+        "FN": 0,
+        "FP": 10,
+        "TN": 50,
+        "TP": 50,
+        "f1": 0.9090909090909091,
+        "fnr": 0.0,
+        "fpr": 0.16666666666666666,
+        "n": 110,
+        "precision": 0.8333333333333334,
+        "recall": 1.0
+      },
+      "prediction_sha256": "afb3ab1fd99461e2cd56f54a8acde3e899d7bbdd3fefd9096b7c330b7079642a",
+      "threshold": 0.7667340945734821
+    }
+  },
+  "evaluation_schema_version": "1.0.0",
+  "interpretation_notes": [
+    "Held-out labels used for evaluation only, not prediction.",
+    "Per-jitter metrics reuse the same 60 normal trials.",
+    "No detector or threshold modification after evaluation.",
+    "Runtime costs not yet measured in this report."
+  ],
+  "paired_normal_fp": {
+    "both": [
+      "normal-irregular-lognormal-t15",
+      "normal-irregular-lognormal-t18",
+      "normal-irregular-lognormal-t19",
+      "normal-irregular-lognormal-t22",
+      "normal-irregular-lognormal-t23",
+      "normal-irregular-lognormal-t25",
+      "normal-irregular-lognormal-t29"
+    ],
+    "multi_only": [],
+    "neither_count": 50,
+    "timing_only": [
+      "normal-irregular-lognormal-t14",
+      "normal-irregular-lognormal-t21",
+      "normal-irregular-lognormal-t26"
+    ]
+  },
+  "partition": "held-out-test",
+  "run_tag": "main-v1",
+  "sample_counts": {
+    "beacon": 50,
+    "normal": 60,
+    "total": 110
+  },
+  "split_manifest_sha256": "19b7413c394c30fa10f629b2c0d932c2d848b849e91f1dad8155fe2ecb56a57e",
+  "test_labels_sha256": "448af4136cbb31d988ccb392c9559cc60be8b1f6922c91acdaa9717fcd5478fe"
+}

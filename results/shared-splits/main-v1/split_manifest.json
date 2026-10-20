@@ -1,0 +1,21 @@
+{
+  "counts": {
+    "calibration": 90,
+    "test": 110,
+    "total": 200
+  },
+  "created_at_utc": "2026-10-20T00:13:14.158211+00:00",
+  "detector_version": "1.0.0",
+  "feature_definition_version": "1.0.0",
+  "file_sha256": {
+    "calibration_features": "c3ca5508e221c07c3ec0c7f713b3e3963aa46fbaa1d1fb0978f3560496d4989b",
+    "calibration_labels": "9e54d3b916d0aa6eec3461b0ef4c4b73553482b5cb6024ed98ef54f3da15b7be",
+    "test_features": "a8538e540c6bad8f032651da4ac192ab51ee5458da4882c5d470d0c3201d1c5b",
+    "test_labels": "448af4136cbb31d988ccb392c9559cc60be8b1f6922c91acdaa9717fcd5478fe"
+  },
+  "paired_beacon_trial_grouping": true,
+  "run_tag": "main-v1",
+  "source_features_sha256": "41cc91142320c9c6789495a559fcd6dd8f0e05c3428802039f6fc8494fd95a78",
+  "source_labels_sha256": "8c54a96d276887f1c62fc028cf0251bdb3ea3b916fc01a1f09c8b82bb25981ac",
+  "source_provenance_sha256": "3b2c9ecc1b56e9bdd55464904c79a9ed02bab1c6e753649a020f6242d6649e20"
+}

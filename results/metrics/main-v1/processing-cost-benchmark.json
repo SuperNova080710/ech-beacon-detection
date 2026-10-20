@@ -1,0 +1,73 @@
+{
+  "benchmark_date": "2026-10-20",
+  "calibration": {
+    "multi_feature": {
+      "epochs": 800,
+      "input_beacon": 50,
+      "input_normal": 40,
+      "median_ms": 199.032131,
+      "p95_ms": 216.105765
+    },
+    "repetitions": 15,
+    "reported_median_ratio": 7165.3573,
+    "scope": "model_preparation_without_file_io",
+    "timing_only": {
+      "input_normal": 40,
+      "median_ms": 0.027777,
+      "p95_ms": 0.032999
+    },
+    "warmup": 3
+  },
+  "environment": {
+    "platform": "Linux-6.8.0-138-generic-x86_64-with-glibc2.35",
+    "python": "3.10.12"
+  },
+  "inference": {
+    "multi_feature": {
+      "median_batch_ms": 1.408802,
+      "median_per_trial_us": 12.807295,
+      "p95_batch_ms": 1.447461
+    },
+    "repetitions": 250,
+    "reported_median_ratio": 17.5256,
+    "scope": "pure_prediction_on_preextracted_features",
+    "timing_only": {
+      "median_batch_ms": 0.080385,
+      "median_per_trial_us": 0.730777,
+      "p95_batch_ms": 0.086857
+    },
+    "trials_per_batch": 110,
+    "warmup": 20
+  },
+  "limitations": [
+    "Single observed benchmark session per measurement type.",
+    "Only aggregate statistics are available.",
+    "Calibration workloads differ between detectors.",
+    "Inference timing excludes feature extraction and file IO.",
+    "Runtime and CPU scheduling may influence results.",
+    "No statistical significance claim is made."
+  ],
+  "methodology": {
+    "calibration_verified": true,
+    "execution_order": "alternating_per_iteration",
+    "model_policy": "frozen",
+    "p95_method": "nearest_rank",
+    "prediction_verified": true,
+    "raw_timing_samples_saved": false,
+    "source_files_modified": false,
+    "test_labels_used": false,
+    "timer": "time.perf_counter_ns"
+  },
+  "recorded_at_utc": "2026-10-20T01:22:52.873629+00:00",
+  "run_tag": "main-v1",
+  "schema_version": "1.0.0",
+  "source": "operator-reported terminal benchmark output",
+  "source_commit": "d30594a",
+  "source_sha256": {
+    "heldout_evaluation": "b357dee703565d98b65467b94f488f9681e53f3ed41b1e3153f432279be9f46b",
+    "multi_calibration": "4731d62e8dbb3eada7a2f2e93197ed8934efb6036670dba74582db36c1f419c5",
+    "multi_predictions": "ffa99bcb98eb0b15e0ce9fff3dfa60c58404e39e255c44d28c5705aea67e7ec0",
+    "timing_calibration": "f4ad9decd7cf52da9e8a1f9ff46e3319cd92725a5eb3851d7b9c08ec46edab0b",
+    "timing_predictions": "afb3ab1fd99461e2cd56f54a8acde3e899d7bbdd3fefd9096b7c330b7079642a"
+  }
+}
